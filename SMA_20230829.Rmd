@@ -1,0 +1,921 @@
+---
+title: "SMA analysis, August 29th 2023"
+output: 
+  html_document:
+    css: Wil_style.css
+    theme: default
+    toc: TRUE
+    toc_float: TRUE
+    number_sections: TRUE
+always_allow_html: yes
+---
+
+```{r setup_1, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(gglaplot)
+library(ggplot2)
+library(data.table)
+library(lubridate)
+library(tidyr)
+library(png)
+library(stringr)
+library(tidyverse)
+library(plotly)
+library(sf)
+library(scales)
+library(htmlwidgets)
+library(ggplot2)
+library(gglaplot)
+library(ggrepel)
+
+
+#devtools::load_all("C:/demogtools/")
+
+data_dir <- 'C:/Families/Data/'
+#colour_palette <- gla_colour_palette()[c(3,6,2,4,5,7,1)]
+
+
+```
+
+
+
+```{r setup_2, include=FALSE}
+#--------------------------------------------------------------------------------
+
+# (Deleted code for calculating SMA FOR ENGLAND IN 2021 only - for this see SMA_20230807.Rmd)
+
+## SMA FOR REST OF ENGLAND AND WALES OVER TIME using data commissioned by GLA from ONS
+# (this is different from previous file 20230807 where I compared with whole of England, and also different from 20230815 where I didn't use the multiplier of 5 for old and young groups)
+
+# Read in data for all births from 1993 to 2021 in England
+
+EandW_births <- readRDS("C:/Families/Data/Births_by_SYA_1993-2021/births_calendar_year_age_mother_lad.rds") %>%  
+  filter(!grepl('E09000', gss_code)) %>%
+  data.frame
+
+# Recode the extreme ages, and group data by year and age of mother 
+# Using mid-point of age groups 15 - 19 for "Under 20" and of age-group 40 - 44 for "40 and over"
+
+EandW_births_grouped <- EandW_births %>%
+  filter(age_mother !="total") %>%
+  mutate(age_mother = recode(age_mother, 'Under 20'='17', '40 and over'='42')) %>% 
+  mutate(Year = as.character(year)) %>%
+  group_by(Year, age_mother) %>% 
+  summarize(SUM_births = sum(value)) %>%
+  data.frame()
+
+# Read in population data (these data are from 1991 and whole UK), selecting for only English women 
+# Start from 1993 to correspond to births data.
+
+# The first code is what I used originally to exclude what I didn't need. 
+# But it's safer to specify what I do need..
+
+# EandW_female_pop <-  readRDS("C:/Families/GLA_population/pop_1991_2021_age_0to85plus.rds") %>%   
+#   filter(!grepl('S', gss_code)) %>%
+#   filter(!grepl('N', gss_code)) %>%
+#   filter(!grepl('E12', gss_code)) %>%
+#   filter(!grepl('K', gss_code)) %>%
+#   filter(!grepl('W92', gss_code)) %>%
+#   filter(!grepl('E92', gss_code)) %>%
+#   filter(year >1992) %>%
+#   filter(sex == "female") %>%  
+#   data.frame()
+
+EandW_female_pop <-  readRDS("C:/Families/GLA_population/pop_1991_2021_age_0to85plus.rds") %>% 
+  filter(grepl('W06000', gss_code) | grepl('E08000', gss_code) |  grepl('E07000', gss_code) |  grepl('E06000', gss_code)) %>%
+   filter(year >1992) %>%
+   filter(sex == "female") %>%  
+   data.frame()
+
+# Select only the ages that correspond to the ONS calculation of sub-national TFR 
+# that is, for the group <20 years, use 15 - 19, and for the group 40 years and over, use 40 - 44.
+# Label these two groups with the mid-point age, that is, 17 and 42.
+
+EandW_female_pop_recode <- EandW_female_pop %>%
+  filter(age > 14) %>%
+  filter(age < 45) %>%
+  mutate(age=replace(age, age<20, 17)) %>%
+  mutate(age=replace(age, age>39, 42)) %>%
+  mutate(Age = as.character(age)) %>% 
+  mutate(Year = as.character(year)) %>%
+  summarise(SUM_pop = sum(value), .by = c(Age, Year)) %>%
+  data.frame()
+
+# Merge births and population data
+merged_EandW_births_pop_allYears = left_join(EandW_births_grouped, EandW_female_pop_recode, 
+                                  by=c("Year" = "Year", "age_mother" = "Age")) %>%
+  data.frame()
+
+# Calculate SMA using new method at end of August
+EandW_SMA_allYears <- merged_EandW_births_pop_allYears %>%
+ mutate(Age_mother = as.numeric(age_mother)) %>%
+  mutate(ASFR = SUM_births/SUM_pop) %>%  # calculate fertility rate for each SYA
+  mutate(ASFR_new = case_when(age_mother == 17 ~ ASFR*5, 
+                             age_mother == 42 ~ ASFR*5,
+                             TRUE ~ ASFR)) %>%   # NEW on 29/08
+  mutate(AgeXASFR_new = ASFR_new * Age_mother) %>%
+  group_by(Year) %>%
+  summarize(SUM_ASFR_new = sum(ASFR_new),    # This is equivalent to TFR
+            SUM_AgeXASFR_new = sum(AgeXASFR_new)) %>%
+  mutate(TFR = SUM_ASFR_new) %>% 
+  mutate(SMA = (SUM_AgeXASFR_new / TFR) +0.5) %>%
+  data.frame()
+ 
+# For 2021 in England (excluding London) and Wales, SMA is 30.6 and TFR is 1.56
+
+#-------------------------------------------------------------------------------
+
+## SMA FOR LONDON OVER TIME (using data commissioned from ONS)
+
+# Read in data for all births from 1993 to 2021 in England
+
+London_births <- readRDS("C:/Families/Data/Births_by_SYA_1993-2021/births_calendar_year_age_mother_lad.rds") %>%  
+  filter(grepl('E09000', gss_code)) %>%
+  data.frame
+
+# Recode the extreme ages, and group data by year and age of mother 
+# Using mid-point of age groups 15 - 19 for "Under 20" and of age-group 40 - 44 for "40 and over"
+
+London_births_grouped <- London_births %>%
+  filter(age_mother !="total") %>%
+  mutate(age_mother = recode(age_mother, 'Under 20'='17', '40 and over'='42')) %>% 
+  mutate(Year = as.character(year)) %>%
+  group_by(Year, age_mother) %>% 
+  summarize(SUM_births = sum(value)) %>%
+  data.frame()
+
+# Read in population data (these data are from 1991 and whole UK) for London, only women, and from 1993
+
+London_female_pop <-  readRDS("C:/Families/GLA_population/pop_1991_2021_age_0to85plus.rds") %>%
+  filter(grepl('E09000', gss_code)) %>% 
+  filter(year >1992) %>%
+  filter(sex == "female") %>%  
+  data.frame()
+
+# Group the ages to be equivalent to births
+
+London_female_pop_all_recode <- London_female_pop %>%
+  filter(age > 14) %>%
+  filter(age < 45) %>%
+  mutate(age2 = case_when(age < 20 ~ 17,
+                          age > 39 ~ 42,
+                          TRUE ~ age )) %>%
+  mutate(Age = as.character(age2)) %>% 
+  mutate(Year = as.character(year)) %>%
+  summarise(SUM_pop = sum(value), .by = c(Age, Year)) %>%
+  data.frame()
+
+# Merge births and population data  
+merged_London_births_pop_allYears = left_join(London_births_grouped, London_female_pop_all_recode,                                            by=c("Year" = "Year", "age_mother" = "Age")) %>%
+  data.frame()
+
+# Calculate SMA for London using new method at end of August
+London_SMA_allYears <- merged_London_births_pop_allYears %>%
+ mutate(Age_mother = as.numeric(age_mother)) %>%
+  mutate(ASFR = SUM_births/SUM_pop) %>%  # calculate fertility rate for each SYA
+  mutate(ASFR_new = case_when(age_mother == 17 ~ ASFR*5, 
+                             age_mother == 42 ~ ASFR*5,
+                             TRUE ~ ASFR)) %>%   # NEW on 29/08
+  mutate(AgeXASFR_new = ASFR_new * Age_mother) %>%
+  group_by(Year) %>%
+  summarize(SUM_ASFR_new = sum(ASFR_new),    # This is equivalent to TFR
+            SUM_AgeXASFR_new = sum(AgeXASFR_new)) %>%
+  mutate(TFR = SUM_ASFR_new) %>% 
+  mutate(SMA = (SUM_AgeXASFR_new / TFR) +0.5) %>%
+  data.frame()
+
+# For 2021 in London, SMA is 32.4 (and TFR is 1.43)
+
+#---------------------------------------------------------------------------------------------------------
+## SMA FOR INDIVIDUAL BOROUGHS OVER TIME  (using data commissioned from ONS)
+  
+# For births data, this time use borough as well as Age and Year to group
+
+London_births_grouped_boroughs <- readRDS("C:/Families/Data/Births_by_SYA_1993-2021/births_calendar_year_age_mother_lad.rds") %>%  
+  filter(grepl('E09000', gss_code)) %>%
+  filter(age_mother !="total") %>%
+  mutate(age_mother = recode(age_mother, 'Under 20'='17', '40 and over'='42')) %>% 
+  mutate(Year = as.character(year)) %>%
+  group_by(Year, age_mother, gss_code) %>% 
+  summarize(SUM_births = sum(value)) %>%
+  data.frame()
+
+# For population data, this time use borough as well as Age and Year to group
+London_female_pop_boroughs <- London_female_pop %>%
+  filter(age > 14) %>%
+  filter(age < 45) %>%
+  mutate(age2 = case_when(age < 20 ~ 17,
+                          age > 39 ~ 42,
+                          TRUE ~ age )) %>%
+  mutate(Age = as.character(age2)) %>% 
+  mutate(Year = as.character(year)) %>%
+  summarise(SUM_pop = sum(value), .by = c(Age, Year, gss_code, gss_name)) %>%
+  data.frame()
+
+# Merge births and population data
+merged_London_births_pop_allYears_boroughs = left_join(London_births_grouped_boroughs, London_female_pop_boroughs,                                            by=c("Year" = "Year", "age_mother" = "Age", "gss_code" = "gss_code")) %>%
+  data.frame()
+
+# Calculate SMA
+London_SMA_allYears_boroughs <- merged_London_births_pop_allYears_boroughs %>%
+   mutate(Age_mother = as.numeric(age_mother)) %>%
+  mutate(ASFR = SUM_births/SUM_pop) %>%  # calculate fertility rate for each SYA
+  mutate(ASFR_new = case_when(age_mother == 17 ~ ASFR*5, 
+                             age_mother == 42 ~ ASFR*5,
+                             TRUE ~ ASFR)) %>%   # NEW on 29/08
+  mutate(AgeXASFR_new = ASFR_new * Age_mother) %>%
+  group_by(Year, gss_code, gss_name) %>%  
+  summarize(SUM_ASFR_new = sum(ASFR_new),    # This is equivalent to TFR
+            SUM_AgeXASFR_new = sum(AgeXASFR_new)) %>%
+  mutate(TFR = SUM_ASFR_new) %>% 
+  mutate(SMA = (SUM_AgeXASFR_new / TFR) +0.5) %>%
+  data.frame()
+
+# Merge with zone codes so can colour line plots of SMA over time for individual London boroughs over time
+
+boroughcodes <- read.csv("C:/Migration/Migration_R/DATA/Domestic/InnerLondon.csv") %>%   
+  data.frame
+
+# Merge SMA data with Inner/Outer file
+
+London_SMA_allYears_boroughs_zone <- London_SMA_allYears_boroughs %>%
+  left_join(boroughcodes, by=c("gss_code"="BoroughCode"))%>% 
+  mutate(Inner_factor= recode(Inner, "1"="Inner", "0"="Outer")) %>%
+  data.frame() 
+
+#---------------------------------------------------------------------------
+
+## SMA FOR INNER AND OUTER LONDON ZONES OVER TIME
+
+# This is new on 9th August!
+  
+boroughcodes <- read.csv("C:/Migration/Migration_R/DATA/Domestic/InnerLondon.csv") %>%   
+  data.frame
+
+# Births data, this time merge with Inner and Outer codes for grouping (as well as Age and Year)
+# Recode the extreme ages, and group data by year and age of mother 
+# Using mid-point of age groups 15 - 19 for "Under 20" and of age-group 40 - 44 for "40 and over"
+
+# Use London births dataframe from above Read in data for all births from 1993 to 2021
+
+London_births <- readRDS("C:/Families/Data/Births_by_SYA_1993-2021/births_calendar_year_age_mother_lad.rds") %>%  
+  filter(grepl('E09000', gss_code)) %>%
+  data.frame
+
+# Group using zone as well this time
+London_births_zone_grouped <- London_births %>%
+  filter(age_mother !="total") %>%
+  left_join(boroughcodes, by=c("gss_code"="BoroughCode"))%>% 
+  mutate(Inner_factor= recode(Inner, "1"="Inner", "0"="Outer")) %>%
+  mutate(age_mother = recode(age_mother, 'Under 20'='17', '40 and over'='42')) %>% 
+  mutate(Year = as.character(year)) %>%
+  group_by(Year, age_mother, Inner) %>% 
+  summarize(SUM_births = sum(value)) %>%
+  data.frame()
+
+# For population data, this time merge with Inner code so that can group using this (as well as Age and Year)
+
+London_female_pop_zone <- London_female_pop %>%
+  left_join(boroughcodes, by=c("gss_code"="BoroughCode"))%>% 
+  filter(age > 14) %>%
+  filter(age < 45) %>%
+  mutate(age2 = case_when(age < 20 ~ 17,
+                          age > 39 ~ 42,
+                          TRUE ~ age )) %>%
+  mutate(Age = as.character(age2)) %>% 
+  mutate(Year = as.character(year)) %>%
+  summarise(SUM_pop = sum(value), .by = c(Year, Age, Inner)) %>%
+  data.frame()
+
+# Merge births and population data
+merged_London_births_pop_allYears_zone = left_join(London_births_zone_grouped, London_female_pop_zone,                                           by=c("Year" = "Year", "age_mother" = "Age", "Inner" = "Inner")) %>%
+  mutate(Inner_factor= recode(Inner, "1"="Inner", "0"="Outer")) %>%
+  data.frame()
+
+# Calculate SMA
+London_SMA_allYears_zone <- merged_London_births_pop_allYears_zone %>%
+   mutate(Age_mother = as.numeric(age_mother)) %>%
+  mutate(ASFR = SUM_births/SUM_pop) %>%  # calculate fertility rate for each SYA
+  mutate(ASFR_new = case_when(age_mother == 17 ~ ASFR*5, 
+                             age_mother == 42 ~ ASFR*5,
+                             TRUE ~ ASFR)) %>%   # NEW on 29/08
+  mutate(AgeXASFR_new = ASFR_new * Age_mother) %>%
+  group_by(Year, Inner_factor) %>%  
+  summarize(SUM_ASFR_new = sum(ASFR_new),    # This is equivalent to TFR
+            SUM_AgeXASFR_new = sum(AgeXASFR_new)) %>%
+  mutate(TFR = SUM_ASFR_new) %>% 
+  mutate(SMA = (SUM_AgeXASFR_new / TFR) +0.5) %>%
+  data.frame()
+
+# For Inner London in 2021, SMA is 33.3 and TFR is 1.26
+# For Outer London in 2021, SMA is 31.7 and TFR 1.62
+
+
+```
+
+# Current geographical variation
+
+
+```{r fig_London_SMA_1, fig.height = 5, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+
+
+## Interactive map of SMA in 2021 in London
+
+# Import LA boundaries for England and Wales
+borough_boundaries <-
+  st_read("C:/Migration/Migration_R/DATA/Domestic/copied_from_Qdrive_20220614/geographical/LAD_DEC_2021_GB_BUC.shp", quiet = TRUE)
+
+# Match boundary data with SMA data and create categories for mapping
+
+SMA_London_geog <- London_SMA_allYears_boroughs_zone %>% 
+  left_join(borough_boundaries, by=c("gss_code"="LAD21CD")) %>%
+  filter(gss_name != "City of London") %>%
+  mutate(year_numeric = as.numeric(Year)) %>%
+  mutate(year_factor = as.factor(Year)) %>%
+  group_by(gss_code, gss_name, Inner_factor) %>% 
+  mutate(lastSMA = last(SMA)) %>%
+  mutate(SMA_Cat = cut(lastSMA, breaks = c(30, 31, 32, 33.5, 35),
+                             right=FALSE,
+                             labels = c(" 30 - 30.99",
+                                        " 31 - 31.99",
+                                        " 32 - 33.49",
+                                        " 33.5 - 35"))) %>%
+  data.frame()
+
+catgreen4 = c('#eeeeee', '#acc1aa', '#739272', '#4a6349')
+
+SMA_London_map <- SMA_London_geog %>%
+  ggplot()+
+  geom_point(aes(x=BNG_E, y=BNG_N, 
+                 text = paste("Borough: ", gss_name,  
+                              "<br>SMA in 2021: ", 
+                              formatC(lastSMA, format="f", big.mark=",", digits=2))),
+             alpha = 0) +   # alpha = 0 ensures that points are not actually plotted
+  geom_sf(aes(geometry=geometry, fill=SMA_Cat),lwd = 0.2, colour = "black")+
+  #ggla_sf()+
+  #theme_gla()+
+  theme(plot.title = element_text(size = 16, hjust = 0.5)) +
+  theme(legend.position = "right")+
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank())+
+  theme(panel.background = element_blank())+
+  theme(plot.caption = element_text (hjust = 0))+
+  theme(plot.title = element_text(size = 16, hjust = 0.5)) +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_blank(), 
+        axis.text.y = element_blank(), 
+        axis.ticks.x = element_blank(), 
+        axis.ticks.y = element_blank())+
+  scale_fill_manual(values = catgreen4) + 
+  labs(title= "<b>SMA in 2021, London<b>", 
+       caption = paste0("Source: Home Office, Chart: GLA demography")) +
+  labs(fill = "% change in SMA")
+
+# Interactive map using ggplotly
+SMA_London_map_int <- ggplotly(SMA_London_map, tooltip = "text") %>%
+  layout(title= list(x = 0.05,
+                     text = "<b>Standardised Mean Age of mothers, London, 2021<b>", 
+                     font=list(size = 15, family = "Arial")),
+         font=list(size = 14, family = "Arial", color = "black", fontface = "bold"),
+         legend=list(orientation = "v", xanchor = "center", x = 1.1, y = 0.3,
+                     title=list(text='SMA',
+                                font = list(family = "Arial", size = 14)),  
+                     font = list(family = "Arial", size = 14))) %>%  
+  # add_annotations(text="", showarrow=FALSE, legendtitle=TRUE) %>%
+  layout(annotations = list(x = 0.05, y = -0.05, text = "Source: ONS; Chart: GLA demography", 
+                            showarrow = F, xref='paper', yref='paper', 
+                            font=list(size=14, family = "Arial")), 
+         margin = list(l = 0,r = 0,  b =40,  t = 70,  pad = 4)) 
+SMA_London_map_int
+
+```
+
+
+# Time trends
+
+
+```{r fig_London_SMA_2, fig.height = 5, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+
+## Line plot of SMA for London and Rest of England and Wales, 1993 - 2021
+
+# Combine England and London data
+merged_SMA_London_EandW = left_join(London_SMA_allYears, EandW_SMA_allYears,  
+                                  by=c("Year" = "Year")) %>%
+  data.frame()
+
+SMA_London_EandW_line <- merged_SMA_London_EandW %>%
+  mutate(year_numeric = as.numeric(Year)) %>%
+  mutate(year_factor = as.factor(Year)) %>%
+  ggplot() +
+  geom_line(aes(x = year_factor, y = SMA.y, group = 1, colour = "Rest of E&W", 
+                text = paste("Area: Rest of England and Wales",
+                             "<br>Year: ", year_factor,
+                             "<br>SMA: ", round(SMA.y, digits = 2))   ), size = 1) + 
+  geom_line(aes(x = year_factor, y = SMA.x, group = 1, colour = "London", 
+                text = paste("Area: London", 
+                             "<br>Year: ", year_factor,
+                             "<br>SMA: ", round(SMA.x, digits = 2))   ), size = 1) + 
+  theme_gla() +
+  theme(axis.text.x=element_text(color = "black", 
+                                 size=11, family = "Arial"),  #, angle=30, vjust=.8, hjust=0.8
+        axis.text.y=element_text(color = "black", size=11, family = "Arial")) +
+  ylim(20, 35) +
+  scale_x_discrete(name ="Year", breaks=c("1991", "1996", "2001","2006","2011", "2016", "2021")) +
+  scale_color_manual(name='Geographical area:', values=c('London'= '#943fab', 'Rest of E&W'='#5ea15d')) +
+  theme(legend.title=element_text(size=14, family = "Arial"),
+        legend.text=element_text(size=11, family = "Arial"),
+        axis.text.x=element_text(color = "black", 
+                                 size=11, family = "Arial"),  #, angle=30, vjust=.8, hjust=0.8
+        axis.text.y=element_text(color = "black", size=11, family = "Arial")) +
+  labs(title= "Standardised Mean Age of mothers, London and Rest of England & Wales, 1993 - 2021", 
+     caption = paste0("Source: ONS, Chart: GLA demography"))
+
+SMA_London_EandW_line_int <- ggplotly(SMA_London_EandW_line, tooltip = "text") %>%
+  style(hoverlabel = list(bgcolor = "white")) %>%
+  layout(title= list(x = 0.05, 
+                     text = "<b>Standardised Mean Age of mothers, London and Rest of England & Wales, 1993 - 2021<b>", 
+                     font=list(size = 15, family = "Arial", color = "black", fontface = "bold")),
+          legend=list(title=list(text='Area', font = list(size = 15, family = "Arial", color = "black", fontface = "bold"))), 
+          xaxis = list(title = list(text ='Year', 
+                                   font = list(size = 15, family = "Arial", color = "black", 
+                                               fontface = "bold"))),
+          yaxis = list(title = list(text ='Standardised Mean Age', 
+                                   font = list(size = 15, family = "Arial", color = "black", 
+                                               fontface = "bold")))
+                 )
+SMA_London_EandW_line_int
+
+
+```
+
+```{r fig_London_SMA_3, fig.height = 5, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+
+
+## Line plot of SMA for London 1993 - 2021 - for inner and outer London
+
+catcolour2 = c('#ee266d', '#6da7de')
+
+SMA_London_line <- London_SMA_allYears_zone %>%
+  mutate(year_numeric = as.numeric(Year)) %>%
+  mutate(year_factor = as.factor(Year)) %>%
+  ggplot() +
+  geom_line(aes(x = year_factor, y = SMA, group = Inner_factor, color = Inner_factor,
+             text = paste("Year: ", year_factor,
+                          "<br>Zone: ", Inner_factor,
+                          "<br>SMA: ", round(SMA, digits = 2)) 
+  )) +
+  theme_gla() +
+#  ylim(20, 35) +
+  scale_x_discrete(name ="Year", breaks=c("1991", "1996", "2001","2006","2011", "2016", "2021")) +
+  scale_color_manual(name='London Zone:', values = catcolour2) +
+  labs(title= "Standardised Mean Age of mothers, London, 1993 - 2021", 
+       caption = paste0("Source: ONS, Chart: GLA demography"))
+
+
+SMA_London_line_int <- ggplotly(SMA_London_line, tooltip = "text") %>%
+  style(hoverlabel = list(bgcolor = "white")) %>%
+  layout(title= list(x = 0.05,
+                     text = "<b>Standardised Mean Age of mothers, London, 1993 - 2021<b>", 
+                     font=list(size = 15, family = "Arial")))
+SMA_London_line_int
+
+```
+
+
+
+
+```{r fig_London_SMA_4, fig.height = 5, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+
+# Plot summary Inner and Outer lines on top of lines for individual boroughs
+
+# Add a variable equivalent to gss_code so can combine the data frames
+London_SMA_allYears_zone_ed <- London_SMA_allYears_zone %>%
+  mutate(gss_code = Inner_factor)  %>% 
+  mutate(gss_name = Inner_factor) %>%
+  mutate(category = "Zone") %>%
+  select(gss_code, gss_name, Inner_factor, SMA, Year, category) %>%
+           data.frame()
+
+London_SMA_allYears_boroughs_zone_ed <- London_SMA_allYears_boroughs_zone %>%
+  mutate(category = "borough") %>%
+  select(gss_code, gss_name, Inner_factor, SMA, Year, category) %>%
+  data.frame()
+
+# Combine Borough and Zone data
+merged_SMA_Borough_Zone = rbind(London_SMA_allYears_boroughs_zone_ed, London_SMA_allYears_zone_ed) %>%  
+  filter(gss_name != "City of London") %>%
+  mutate(year_numeric = as.numeric(Year)) %>%
+  mutate(year_factor = as.factor(Year)) %>%
+ data.frame()
+
+## Line plot of SMA over time for individual London boroughs, 1993 - 2021
+
+catcolour2 = c('#ee266d', '#6da7de')
+
+
+SMA_boroughs_line_abs_zone <- merged_SMA_Borough_Zone %>%
+  ggplot() +
+  geom_line(data=merged_SMA_Borough_Zone[merged_SMA_Borough_Zone$gss_code == "Inner", ], size = 1, alpha = 1,
+           aes(x = year_factor, y = SMA, group = gss_code, 
+                color = Inner_factor, text = paste("Year: ", Year,
+                                                 "<br>Zone: ", Inner_factor, 
+                                                 "<br>SMA: ", round(SMA, digits = 2)))) + 
+  geom_line(data=merged_SMA_Borough_Zone[merged_SMA_Borough_Zone$gss_code == "Outer", ], size = 1, alpha = 1,
+             aes( x = year_factor, y = SMA, group = gss_code, 
+                color = Inner_factor, text = paste("Year: ", Year,
+                                                 "<br>Zone: ", Inner_factor, 
+                                                 "<br>SMA: ", round(SMA, digits = 2)))) + 
+   geom_line(data=merged_SMA_Borough_Zone[merged_SMA_Borough_Zone$category == "borough", ], size = 0.4, alpha = 0.3,
+                aes(x = year_factor, y = SMA, group = gss_code, 
+                color = Inner_factor, text = paste("Year: ", Year,
+                                                 "<br>Borough: ", gss_name, 
+                                                 "<br>SMA: ", round(SMA, digits = 2))) ) + 
+  theme_gla() +
+  theme(axis.text.x=element_text(color = "black", 
+                                 size=11, family = "Arial"),  #, angle=30, vjust=.8, hjust=0.8
+        axis.text.y=element_text(color = "black", size=11, family = "Arial")) +
+  #theme(legend.position='none') +
+  #ylim(25, 35) +
+  theme(legend.title=element_text(size=14, family = "Arial"),
+        legend.text=element_text(size=11, family = "Arial"),
+        axis.text.x=element_text(color = "black", 
+                                 size=11, family = "Arial"),  #, angle=30, vjust=.8, hjust=0.8
+        axis.text.y=element_text(color = "black", size=11, family = "Arial")) +
+  scale_color_manual(name='London Zone:', values = catcolour2) +
+  theme(legend.title=element_text(size=16),
+        legend.text=element_text(size=12)) +
+  scale_x_discrete(name ="year_factor", breaks=c("1991", "1996", "2001","2006","2011", "2016", "2021")) +
+  labs(title= "Standardised Mean Age of mothers, London boroughs, 1993 - 2021", 
+       caption = paste0("Source: ONS, Chart: GLA demography"))
+
+SMA_boroughs_line_abs_int <- ggplotly(SMA_boroughs_line_abs_zone, tooltip = "text") %>%
+  style(hoverlabel = list(bgcolor = "white")) %>%
+  layout(title= list(x = 0.05,
+                     text ="<b>Standardised Mean Age of mothers, London boroughs, 1993 - 2021<b>", 
+   font=list(size = 15, family = "Arial", color = "black", fontface = "bold")),
+          legend=list(title=list(text='London Zone', font = list(size = 15, family = "Arial", color = "black", fontface = "bold"))), 
+          xaxis = list(title = list(text ='Year', 
+                                   font = list(size = 15, family = "Arial", color = "black", 
+                                               fontface = "bold"))),
+          yaxis = list(title = list(text ='Standardised Mean Age of mothers', 
+                                   font = list(size = 15, family = "Arial", color = "black", 
+                                               fontface = "bold"))))
+SMA_boroughs_line_abs_int
+
+
+
+```
+
+```{r fig_London_SMA_5, fig.height = 5, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+
+## Line plot of SMA over time for inner and outer London, indexed to 1993
+
+catcolour2 = c('#ee266d', '#6da7de')
+
+SMA_London_line_indexed <- London_SMA_allYears_zone %>%
+  mutate(year_numeric = as.numeric(Year)) %>%
+  mutate(year_factor = as.factor(Year)) %>%
+  group_by(Inner_factor) %>% 
+  mutate(Indexed_SMA = (SMA/first(SMA))*100) %>% 
+  ggplot() +
+  geom_line(aes(x = year_factor, y = Indexed_SMA, group = Inner_factor, color = Inner_factor,
+             text = paste("Year: ", year_factor,
+                          "<br>Zone: ", Inner_factor,
+                          "br>SMA: ", round(SMA, digits = 2),
+                          "<br>Indexed SMA: ", round(Indexed_SMA, digits = 2)) 
+  )) +
+  theme_gla() +
+#  ylim(20, 35) +
+  scale_x_discrete(name ="Year", breaks=c("1991", "1996", "2001","2006","2011", "2016", "2021")) +
+  scale_color_manual(name='London Zone:', values = catcolour2) +
+  labs(title= "Standardised Mean Age of mothers, indexed to 1993, London, 1993 - 2021", 
+       caption = paste0("Source: ONS, Chart: GLA demography"))
+
+
+SMA_London_line_indexed_int <- ggplotly(SMA_London_line_indexed, tooltip = "text") %>%
+  style(hoverlabel = list(bgcolor = "white")) %>%
+  layout(title= list(x = 0.05,
+                     text = "<b>Standardised Mean Age of mothers, Indexed to 1993, London, 1993 - 2021<b>", 
+                     font=list(size = 15, family = "Arial")))
+SMA_London_line_indexed_int
+
+```
+
+```{r fig_London_SMA_6, fig.height = 5, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+
+# For indexed SMA, plot summary Inner and Outer lines on top of borough data
+
+## Line plot of SMA over time for individual London boroughs, 1993 - 2021
+
+catcolour2 = c('#ee266d', '#6da7de')
+
+merged_SMA_Borough_Zone_ed <- merged_SMA_Borough_Zone %>%
+  group_by(gss_code) %>% 
+  mutate(Indexed_SMA = (SMA/first(SMA))*100) %>%
+  data.frame()
+
+SMA_boroughs_line_indexed_zone <-  merged_SMA_Borough_Zone_ed %>%
+   ggplot() +
+   geom_line(data=merged_SMA_Borough_Zone_ed[merged_SMA_Borough_Zone_ed$gss_code == "Inner", ], size = 1, alpha = 1,
+           aes(x = year_factor, y = Indexed_SMA, group = gss_code, 
+                color = Inner_factor, text = paste("Year: ", Year,
+                                                 "<br>Zone: ", Inner_factor, 
+                                                 "<br>SMA: ", round(SMA, digits = 2),
+                          "<br>Indexed SMA: ", round(Indexed_SMA, digits = 2))    )) +
+  geom_line(data=merged_SMA_Borough_Zone_ed[merged_SMA_Borough_Zone_ed$gss_code == "Outer", ], size = 1, alpha = 1,
+             aes( x = year_factor, y = Indexed_SMA, group = gss_code, 
+                color = Inner_factor, text = paste("Year: ", Year,
+                                                 "<br>Zone: ", Inner_factor, 
+                                                 "<br>SMA: ", round(SMA, digits = 2),
+                          "<br>Indexed SMA: ", round(Indexed_SMA, digits = 2))   )) +
+   geom_line(data=merged_SMA_Borough_Zone_ed[merged_SMA_Borough_Zone_ed$category == "borough", ], size = 0.4, alpha = 0.3,
+                aes(x = year_factor, y = Indexed_SMA, group = gss_code, 
+                color = Inner_factor, text = paste("Year: ", Year,
+                                                 "<br>Borough: ", gss_name, 
+                                                 "<br>SMA: ", round(SMA, digits = 2),
+                          "<br>Indexed SMA: ", round(Indexed_SMA, digits = 2))   )) +
+  theme_gla() +
+  theme(axis.text.x=element_text(color = "black", 
+                                 size=11, family = "Arial"),  #, angle=30, vjust=.8, hjust=0.8
+        axis.text.y=element_text(color = "black", size=11, family = "Arial")) +
+  #theme(legend.position='none') +
+  #ylim(25, 35) +
+  theme(legend.title=element_text(size=14, family = "Arial"),
+        legend.text=element_text(size=11, family = "Arial"),
+        axis.text.x=element_text(color = "black", 
+                                 size=11, family = "Arial"),  #, angle=30, vjust=.8, hjust=0.8
+        axis.text.y=element_text(color = "black", size=11, family = "Arial")) +
+  scale_color_manual(name='London Zone:', values = catcolour2) +
+  theme(legend.title=element_text(size=16),
+        legend.text=element_text(size=12)) +
+  scale_x_discrete(name ="year_factor", breaks=c("1991", "1996", "2001","2006","2011", "2016", "2021")) +
+  labs(title= "Standardised Mean Age of mothers, London boroughs, Indexed to 1993, 1993 - 2021", 
+       caption = paste0("Source: ONS, Chart: GLA demography"))
+
+SMA_boroughs_line_indexed_int <- ggplotly(SMA_boroughs_line_indexed_zone, tooltip = "text") %>%
+  style(hoverlabel = list(bgcolor = "white")) %>%
+  layout(title= list(x = 0.05,
+                     text ="<b>Standardised Mean Age of mothers, Indexed to 1993, London boroughs, 1993 - 2021<b>", 
+   font=list(size = 15, family = "Arial", color = "black", fontface = "bold")),
+          legend=list(title=list(text='London Zone', font = list(size = 15, family = "Arial", color = "black", fontface = "bold"))), 
+          xaxis = list(title = list(text ='Year', 
+                                   font = list(size = 15, family = "Arial", color = "black", 
+                                               fontface = "bold"))),
+          yaxis = list(title = list(text ='Standardised Mean Age of mothers', 
+                                   font = list(size = 15, family = "Arial", color = "black", 
+                                               fontface = "bold"))))
+SMA_boroughs_line_indexed_int
+
+```
+
+
+
+
+```{r fig_London_SMA_7, fig.height = 5, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+
+## Scatterplot of absolute change in SMA between 1993 and 2021 v. SMA in 1993 for individual London boroughs
+
+catcolour2 = c('#ee266d', '#6da7de')
+
+SMA_absChange_scatterplot <- London_SMA_allYears_boroughs_zone %>%
+  filter(gss_name != "City of London") %>%
+  mutate(year_numeric = as.numeric(Year)) %>%
+  mutate(year_factor = as.factor(Year)) %>%
+  group_by(gss_code, gss_name, Inner_factor) %>% 
+  mutate(firstSMA = first(SMA)) %>%
+  mutate(lastSMA = last(SMA)) %>%
+  mutate(AbsChange_SMA = (lastSMA - firstSMA)) %>%
+  filter(year_factor == "2021") %>% 
+  ggplot(aes(x = firstSMA, y = AbsChange_SMA, color=Inner_factor)) +
+  geom_point(shape=18,  size = 4) +
+  scale_color_manual(name='London Zone:', values = catcolour2) +
+  theme_gla(x_axis_title = TRUE,  y_axis_title = TRUE, free_y_facets = TRUE)+
+  labs(x = "Borough SMA value in 1993", 
+       y = "Change in SMA value between 1993 and 2021") +
+  geom_text_repel(aes(label = gss_name), size = 4) +
+  labs(title= "Scatterplot of change in SMA for London boroughs between 1993 - 2021", 
+       caption = paste0("Source: ONS, Chart: GLA demography"))
+SMA_absChange_scatterplot
+
+
+```
+
+
+```{r fig_London_SMA_8, fig.height = 5, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+
+# ------------------------------------------------------------------------------------------------
+
+## Scatterplot of percentage change in SMA between 1993 and 2021 v. SMA in 1993 for individual London boroughs
+
+catcolour2 = c('#ee266d', '#6da7de')
+
+SMA_percChange_scatterplot <- London_SMA_allYears_boroughs_zone %>%
+  filter(gss_name != "City of London") %>%
+  mutate(year_numeric = as.numeric(Year)) %>%
+  mutate(year_factor = as.factor(Year)) %>%
+  group_by(gss_code, gss_name, Inner_factor) %>% 
+  mutate(firstSMA = first(SMA)) %>%
+  mutate(lastSMA = last(SMA)) %>%
+  mutate(PercChange_SMA = (lastSMA - firstSMA)*100/firstSMA) %>% 
+  filter(year_factor == "2021") %>% 
+  ggplot(aes(x = firstSMA, y = PercChange_SMA, color=Inner_factor)) +
+  geom_point(shape=18,  size = 4) +
+  scale_color_manual(name='London Zone:', values = catcolour2) +
+  scale_y_continuous(labels=function(PercChange_SMA) paste0(PercChange_SMA,"%"))+
+  theme_gla(x_axis_title = TRUE,  y_axis_title = TRUE, free_y_facets = TRUE)+
+  labs(x = "Borough SMA value in 1993", 
+       y = "Percentage change in SMA value between 1993 and 2021") +
+  geom_text_repel(aes(label = gss_name), size = 4) +
+  labs(title= "Scatterplot of percentage change in SMA for London boroughs between 1993 - 2021", 
+       caption = paste0("Source: ONS, Chart: GLA demography"))
+SMA_percChange_scatterplot
+
+
+```
+
+# Geographical variation in change
+
+
+```{r fig_London_SMA_9, fig.height = 5, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+
+## Static map of absolute change in SMA between 1993 and 2021 
+
+# Import borough boundaries - these are the classic ones
+#borough_boundaries_2021 <-
+#  st_read("C:/Deprivation_analysis/2011_census_london_boroughs/London_Borough_Excluding_MHW.shp", quiet = TRUE)
+
+# Import LA boundaries for England and Wales - these are simplified
+borough_boundaries <-
+  st_read("C:/Migration/Migration_R/DATA/Domestic/copied_from_Qdrive_20220614/geographical/LAD_DEC_2021_GB_BUC.shp", quiet = TRUE)
+
+SMA_absChange_geog <- London_SMA_allYears_boroughs_zone %>% 
+  left_join(borough_boundaries, by=c("gss_code"="LAD21CD")) %>%
+  filter(gss_name != "City of London") %>%
+  mutate(year_numeric = as.numeric(Year)) %>%
+  mutate(year_factor = as.factor(Year)) %>%
+  group_by(gss_code, gss_name, Inner_factor) %>% 
+  mutate(firstSMA = first(SMA)) %>%
+  mutate(lastSMA = last(SMA)) %>%
+  mutate(AbsChange_SMA = (lastSMA - firstSMA)) %>%
+  mutate(SMA_AbsChangeCat = cut(AbsChange_SMA, breaks = c(1, 2.5, 3.5, 4.5, 6),
+                      right=FALSE,
+                      labels = c(" 1.0 - 2.49",
+                                 " 2.5 - 3.49",
+                                 " 3.5 - 4.49",
+                                 " 4.5 - 6"))) %>%
+  data.frame()
+
+catgreen4 = c('#eeeeee', '#acc1aa', '#739272', '#4a6349')
+
+SMA_absChange_map1 <- SMA_absChange_geog %>%
+  ggplot() +
+  ggla_sf(aes(geometry=geometry, fill=SMA_AbsChangeCat), color = "white", size = 0.5)+
+  theme_gla()+
+  scale_fill_manual(values = catgreen4)+
+  theme(legend.position="right") +
+  labs(title= "Static map of change in SMA, London, 1993 - 2021" )
+
+```
+
+```{r fig_London_SMA_10, fig.height = 5, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+
+## Interactive map of absolute change in SMA between 1993 and 2021 
+
+#quantile(SMA_absChange_geog$AbsChange_SMA)
+
+SMA_absChange_map2 <- SMA_absChange_geog %>%
+  ggplot()+
+  geom_point(aes(x=BNG_E, y=BNG_N, 
+                 text = paste("Borough: ", gss_name,  
+                              "<br>SMA in 1993: ", 
+                              formatC(firstSMA, format="f", big.mark=",", digits=2),
+                              "<br>SMA in 2021: ", 
+                              formatC(lastSMA, format="f", big.mark=",", digits=2),
+                              "<br>Change in SMA between 1993 and 2021: ", 
+                              formatC(AbsChange_SMA, format="f", big.mark=",", digits=2))), 
+             alpha = 0)+   # alpha = 0 ensures that points are not actually plotted
+  geom_sf(aes(geometry=geometry, fill=SMA_AbsChangeCat),lwd = 0.2, colour = "black")+
+  #ggla_sf()+
+  #theme_gla()+
+  theme(plot.title = element_text(size = 16, hjust = 0.5)) +
+  theme(legend.position = "right")+
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank())+
+  theme(panel.background = element_blank())+
+  theme(plot.caption = element_text (hjust = 0))+
+  theme(plot.title = element_text(size = 16, hjust = 0.5)) +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_blank(), 
+        axis.text.y = element_blank(), 
+        axis.ticks.x = element_blank(), 
+        axis.ticks.y = element_blank())+
+  scale_fill_manual(values = catgreen4) + 
+  labs(title= "<b>Change in SMA, 1993 - 2021, London<b>", 
+       caption = paste0("Source: Home Office, Chart: GLA demography")) +
+  labs(fill = "Change in SMA")
+
+# Interactive map using ggplotly
+SMA_absChange_map2_int <- ggplotly(SMA_absChange_map2, tooltip = "text") %>%
+  layout(title= list(x = 0.05,
+                     text = "<b>Absolute change in SMA, 1993 - 2021, London<b>", 
+                     font=list(size = 15, family = "Arial")),
+         font=list(size = 14, family = "Arial", color = "black", fontface = "bold"),
+         legend=list(orientation = "v", xanchor = "center", x = 1.1, y = 0.3,
+                     title=list(text='SMA Change',
+                                font = list(family = "Arial", size = 14)),  
+                     font = list(family = "Arial", size = 14))) %>%  
+  # add_annotations(text="", showarrow=FALSE, legendtitle=TRUE) %>%
+  layout(annotations = list(x = 0.05, y = -0.05, text = "Source: ONS; Chart: GLA demography", 
+                            showarrow = F, xref='paper', yref='paper', 
+                            font=list(size=14, family = "Arial")), 
+         margin = list(l = 0,r = 0,  b =40,  t = 70,  pad = 4)) 
+SMA_absChange_map2_int
+
+
+```
+
+```{r fig_London_SMA_11, fig.height = 5, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+
+## Interactive map of percentage change in SMA between 1993 and 2021 
+
+# quantile(SMA_percChange_geog$PercChange_SMA)
+
+# Import LA boundaries for England and Wales
+borough_boundaries <-
+  st_read("C:/Migration/Migration_R/DATA/Domestic/copied_from_Qdrive_20220614/geographical/LAD_DEC_2021_GB_BUC.shp", quiet = TRUE)
+
+# Match boundary data with SMA data and create categories for mapping
+
+SMA_percChange_geog <- London_SMA_allYears_boroughs_zone %>% 
+  left_join(borough_boundaries, by=c("gss_code"="LAD21CD")) %>%
+  filter(gss_name != "City of London") %>%
+  mutate(year_numeric = as.numeric(Year)) %>%
+  mutate(year_factor = as.factor(Year)) %>%
+  group_by(gss_code, gss_name, Inner_factor) %>% 
+  mutate(firstSMA = first(SMA)) %>%
+  mutate(lastSMA = last(SMA)) %>%
+  mutate(PercChange_SMA = ((lastSMA - firstSMA)/firstSMA)*100) %>% 
+  mutate(SMA_PercChangeCat = cut(PercChange_SMA, breaks = c(5, 8, 12, 16, 21),
+                             right=FALSE,
+                             labels = c(" 5 - 7.99",
+                                        " 8 - 11.99",
+                                        " 12 - 15.99",
+                                        " 16 - 21"))) %>%
+  data.frame()
+
+catgreen4 = c('#eeeeee', '#acc1aa', '#739272', '#4a6349')
+
+SMA_percChange_map <- SMA_percChange_geog %>%
+  ggplot()+
+  geom_point(aes(x=BNG_E, y=BNG_N, 
+                 text = paste("Borough: ", gss_name,  
+                              "<br>SMA in 1993: ", 
+                              formatC(firstSMA, format="f", big.mark=",", digits=2),
+                              "<br>SMA in 2021: ", 
+                              formatC(lastSMA, format="f", big.mark=",", digits=2),
+                              "<br>Percentage change in SMA between 1993 and 2021: ", 
+                              formatC(PercChange_SMA, format="f", big.mark=",", digits=2),"%")), 
+             alpha = 0)+   # alpha = 0 ensures that points are not actually plotted
+  geom_sf(aes(geometry=geometry, fill=SMA_PercChangeCat ),lwd = 0.2, colour = "black")+
+  #ggla_sf()+
+  #theme_gla()+
+  theme(plot.title = element_text(size = 16, hjust = 0.5)) +
+  theme(legend.position = "right")+
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank())+
+  theme(panel.background = element_blank())+
+  theme(plot.caption = element_text (hjust = 0))+
+  theme(plot.title = element_text(size = 16, hjust = 0.5)) +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_blank(), 
+        axis.text.y = element_blank(), 
+        axis.ticks.x = element_blank(), 
+        axis.ticks.y = element_blank())+
+  scale_fill_manual(values = catgreen4) + 
+  labs(title= "<b>Percentage change in SMA, 1993 - 2021, London<b>", 
+       caption = paste0("Source: Home Office, Chart: GLA demography")) +
+  labs(fill = "% change in SMA")
+
+# Interactive map using ggplotly
+SMA_percChange_map_int <- ggplotly(SMA_percChange_map, tooltip = "text") %>%
+  layout(title= list(x = 0.05,
+                     text = "<b>Percentage change in SMA, 1993 - 2021, London<b>", 
+                     font=list(size = 15, family = "Arial")),
+         font=list(size = 14, family = "Arial", color = "black", fontface = "bold"),
+         legend=list(orientation = "v", xanchor = "center", x = 1.1, y = 0.3,
+                     title=list(text='SMA % change',
+                                font = list(family = "Arial", size = 14)),  
+                     font = list(family = "Arial", size = 14))) %>%  
+  # add_annotations(text="", showarrow=FALSE, legendtitle=TRUE) %>%
+  layout(annotations = list(x = 0.05, y = -0.05, text = "Source: ONS; Chart: GLA demography", 
+                            showarrow = F, xref='paper', yref='paper', 
+                            font=list(size=14, family = "Arial")), 
+         margin = list(l = 0,r = 0,  b =40,  t = 70,  pad = 4)) 
+SMA_percChange_map_int
+
+```
