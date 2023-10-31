@@ -35,7 +35,7 @@ library(rmdformats)
 #devtools::load_all("C:/demogtools/")
 
 data_dir <- 'C:/Families/Data/'
-chart_dir <- 'Charts/'
+chart_dir <- 'C:/Families/Charts/'
 #colour_palette <- gla_colour_palette()[c(3,6,2,4,5,7,1)]
 
 # Disable scientific notation
@@ -50,94 +50,134 @@ options(scipen=999)
 
 # Read in births (all years from 1993) 
 
-All_births <- readRDS("C:/Families/Data/Births_by_SYA_1993-2021/births_calendar_year_age_mother_lad.rds") %>%   
-  data.frame
+# All_births <- readRDS("C:/Families/Data/Births_by_SYA_1993-2021/births_calendar_year_age_mother_lad.rds") %>%   
+#   data.frame
 
 # group the extreme ages
 
-All_london_births <- All_births %>%
-  filter(grepl('E09000', gss_code)) %>%
+# All_london_births <- All_births %>%
+#   filter(grepl('E09000', gss_code)) %>%
+#   filter(age_mother !="total") %>%
+#   mutate(age_mother = recode(age_mother, 'Under 20'='19', '40 and over'='40')) %>% 
+#   mutate(age_mother = as.numeric(age_mother)) %>%
+#   group_by_(.dots=c("year", "age_mother")) %>% 
+#   summarize(SUM_births = sum(value)) %>%
+#   data.frame()
+#   
+
+# Read in data for all births from 1993 to 2021 in England
+
+London_births <- readRDS("C:/Families/Data/Births_by_SYA_1993-2021/births_calendar_year_age_mother_lad.rds") %>%  
+  filter(grepl('E09', gss_code)) %>%
+  data.frame
+
+London_births_grouped <- London_births %>%
   filter(age_mother !="total") %>%
-  mutate(age_mother = recode(age_mother, 'Under 20'='19', '40 and over'='40')) %>% 
-  mutate(age_mother = as.numeric(age_mother)) %>%
-  group_by_(.dots=c("year", "age_mother")) %>% 
+  mutate(age_mother = recode(age_mother, 'Under 20'='17', '40 and over'='42')) %>% 
+  mutate(Year = as.character(year)) %>%
+  group_by(Year, age_mother) %>% 
   summarize(SUM_births = sum(value)) %>%
   data.frame()
-  
 
-# Read in population data again (now this is from 1991) 
+# Read in population data (data are from 1991 and whole UK) and select for London, only women, and from 1993
 
-input_pop <-  readRDS("C:/Families/GLA_population/pop_1991_2021_age_0to85plus.rds") %>%   
+London_female_pop <-  readRDS("C:/Families/GLA_population/pop_1991_2021_age_0to85plus.rds") %>%
+  filter(grepl('E09000', gss_code)) %>% 
+  filter(year >1992) %>%
+  filter(sex == "female") %>%  
   data.frame()
 
-# select population for London, and only women
+# Group the ages to be equivalent to births
 
-London_fempop_fifteenToFortyfour <- input_pop %>%
-  filter(sex == "female") %>%
-  filter(grepl('E09000', gss_code)) %>%
-  filter(age >14) %>%
-  filter(age <45) %>%
-  mutate(age=replace(age, age<20, 19)) %>%
-  mutate(age=replace(age, age>40, 40)) %>%
-  group_by(year, age) %>% 
+London_female_pop_all_recode <- London_female_pop %>%
+  filter(age > 14) %>%
+  filter(age < 45) %>%
+  mutate(age=replace(age, age<20, 17)) %>%
+  mutate(age=replace(age, age>39, 42)) %>%
+  mutate(Age = as.character(age)) %>% 
+  mutate(Year = as.character(year)) %>%
+  group_by(Year, Age) %>% 
   summarize(SUM_pop = sum(value)) %>%
   data.frame()
-  
-# Joining population and births data 
 
-merged_births_pop_SYA = left_join(London_fempop_fifteenToFortyfour, All_london_births,
-               by=c("year", "age" = "age_mother")) %>%
-  filter(year >1992) %>%
+# Merge population and births data 
+merged_London_births_pop_allYears = left_join(London_births_grouped, London_female_pop_all_recode, 
+                                  by=c("Year" = "Year", "age_mother" = "Age")) %>%
   data.frame()
 
-ASFR_calc_SYA <- merged_births_pop_SYA %>%
-  mutate(ASFR = SUM_births*1000/SUM_pop) %>%
+# Calculate Age Specific Fertility Rate 
+London_ASFR_allYears <- merged_London_births_pop_allYears %>%
+  mutate(London_ASFR = (SUM_births/SUM_pop)) %>%
+  mutate(London_ASFR_perK = ((SUM_births/SUM_pop) *1000)) %>%
   data.frame()
 
-TFR_calc_SYA <- ASFR_calc_SYA %>%
-  group_by(year) %>% 
-  summarise(SUM_ASFR = sum(ASFR)) %>%
-  mutate(TFR = SUM_ASFR/1000) %>%
-   select(year, SUM_ASFR, TFR) %>%
+# Calculate Total Fertility Rate
+London_TFR_allYears <- London_ASFR_allYears %>%
+   mutate(London_ASFR_new = case_when(age_mother == 17 ~ London_ASFR*5, 
+                             age_mother == 42 ~ London_ASFR*5,
+                             TRUE ~ London_ASFR)) %>%   # NEW on 29/08
+  group_by(Year) %>% 
+  summarise(London_TFR = sum(London_ASFR_new)) %>%
   data.frame()
+
+
+# # Calculate new TFR
+# TFR_calc_SYA <- ASFR_calc_SYA %>%
+#    mutate(ASFR_new = case_when(age_mother == 17 ~ ASFR*5, 
+#                              age_mother == 42 ~ ASFR*5,
+#                              TRUE ~ ASFR)) %>%   # NEW on 29/08
+#   group_by(year) %>% 
+#   summarise(SUM_ASFR = sum(ASFR)) %>%
+#   mutate(TFR = SUM_ASFR/1000) %>%
+#    select(year, SUM_ASFR, TFR) %>%
+#   data.frame()
 
 ```
 
 
-```{r fig_London_TFR_1, fig.height = 5, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+```{r fig_London_TFR_1, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
 
 # Line plot of TFR for London 1993 - 2021, calculated by SYA
 
-TFR_line_SYA <- TFR_calc_SYA %>%
-    mutate(year_factor = as.factor(year)) %>%
-    ggplot(aes(x = year_factor, y = TFR, group = 1, text = paste("Year: ", year,
-                         "<br>TFR: ", round(TFR, digits = 3)) 
+TFR_line_SYA <- London_TFR_allYears %>%
+    mutate(year_factor = as.factor(Year)) %>%
+    ggplot(aes(x = year_factor, y = London_TFR, group = 1, text = paste("Year: ", Year,
+                         "<br>TFR: ", round(London_TFR, digits = 3)) 
                )) +
   theme_gla() +
   geom_line(colour = "#739272", size = 1) + 
-  ylim(0.5, 3.0) +
   scale_x_discrete(name ="Year", breaks=c("1991", "1996", "2001","2006","2011", "2016", "2021")) +
   labs(title= "TOTAL FERTILITY RATE, London, 1993 - 2021", 
        caption = paste0("Source: ONS, Chart: GLA demography"))
 
-ggplotly(TFR_line_SYA, tooltip = "text") %>%
+ggsave (filename = (paste0(chart_dir, "TFR_London_SYA_line.png")),
+         plot = TFR_line_SYA,
+         device = "png",
+         dpi=600,
+         width = 9,
+         height = 5.56,
+         units = "in")
+
+TFR_line_SYA_int <- ggplotly(TFR_line_SYA, tooltip = "text") %>%
     style(hoverlabel = list(bgcolor = "white")) %>%
     layout(title= list(x = 0.05,
-         text = "<b>Fig 1: TOTAL FERTILITY RATE, London, 1993 - 2021, calculated using SYA<b>", 
+         text = "<b>TOTAL FERTILITY RATE, London, 1993 - 2021, calculated using SYA<b>", 
          font=list(size = 15, family = "Arial")))
+TFR_line_SYA_int
 
 
 ```
 
 
-```{r fig_London_TFR_2, fig.height = 5, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+```{r fig_London_TFR_2, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
 
 # Line plot of ASFR for London in 2021, calculated by SYA
 
-ASFR_2021_line_SYA <- ASFR_calc_SYA %>%
-  filter(year == "2021") %>%
-  ggplot(aes(x = age, y = ASFR, group = 1, text = paste("Age : ", age,
-                         "<br>ASFR: ", round(ASFR, digits = 3))
+ASFR_2021_line_SYA <- London_ASFR_allYears %>%
+  filter(Year == "2021") %>%
+  mutate(age_numeric = as.numeric(age_mother)) %>%
+  ggplot(aes(x = age_numeric, y = London_ASFR_perK, group = 1, text = paste("Age : ", age_numeric,
+                         "<br>ASFR: ", round(London_ASFR_perK, digits = 3))
 )) +
   theme_gla() +
   geom_line(colour = "#739272", size = 1) + 
@@ -145,10 +185,18 @@ ASFR_2021_line_SYA <- ASFR_calc_SYA %>%
   labs(title= "AGE SPECIFIC FERTILITY RATE, London, 2021, using SYA", 
        caption = paste0("Source: ONS, Chart: GLA demography"))
 
+ggsave (filename = (paste0(chart_dir, "ASFR_London_SYA_2021_line.png")),
+         plot = ASFR_2021_line_SYA,
+         device = "png",
+         dpi=600,
+         width = 9,
+         height = 5.56,
+         units = "in")
+
 ggplotly(ASFR_2021_line_SYA, tooltip = "text") %>%
     style(hoverlabel = list(bgcolor = "white")) %>%
     layout(title= list(x = 0.05,
-         text = "<b>Fig 2: AGE SPECIFIC FERTILITY RATE, London, 2021, calculated using SYA<b>", 
+         text = "<b>AGE SPECIFIC FERTILITY RATE, London, 2021, calculated using SYA<b>", 
          font=list(size = 15, family = "Arial")))
 
 
@@ -157,26 +205,39 @@ ggplotly(ASFR_2021_line_SYA, tooltip = "text") %>%
 
 
 
-```{r fig_London_TFR_3, fig.height = 5, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+```{r fig_London_TFR_3, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
 
 # Line plot of ASFR by year of age, showing change between 1993 - 2021, calculated by SYA
 
-ASFR_line_SYA <- ASFR_calc_SYA %>%
-  ggplot(aes(x = age, y = ASFR, group = year, color = year, text = paste("Year  :", year,
-                                                           "<br>Age : ", age,
-                                                          "<br>ASFR: ", round(ASFR, digits = 3))
+ASFR_line_SYA <- London_ASFR_allYears %>%
+  mutate(year = as.numeric(Year)) %>%
+  mutate(age_numeric = as.numeric(age_mother)) %>%
+  ggplot(aes(x = age_numeric, y = London_ASFR_perK, group = year, color = year, text = paste("Year  :", year,
+                                                           "<br>Age : ", age_numeric,
+                                                          "<br>ASFR: ", round(London_ASFR_perK, digits = 3))
              )) +
   theme_gla() +
   geom_line() + 
   scale_colour_gradient(low = "#edf8e9", high = "#006d2c") +
+  theme(legend.position = "right") +
   ylim(0, 150) +
-  labs(title= "Fig 3: AGE SPECIFIC FERTILITY RATE, London, 1993 - 2021, calculated using SYA", 
+  labs(title= "Age specific fertility rates, London, 1993 - 2021", 
        caption = paste0("Source: ONS, Chart: GLA demography"))
+
+
+ggsave (filename = (paste0(chart_dir, "ASFR_London_SYA_1993-2021_line.png")),
+         plot = ASFR_line_SYA,
+         device = "png",
+         dpi=600,
+         width = 9,
+         height = 5.56,
+         units = "in")
+
 
 ggplotly(ASFR_line_SYA, tooltip = "text") %>%
     style(hoverlabel = list(bgcolor = "white")) %>%
     layout(title= list(x = 0.05,
-         text = "<b>Fig 3: AGE SPECIFIC FERTILITY RATE, London, 1993 - 2021, calculated using SYA<b>", 
+         text = "<b>Age specific fertility rates, London, 1993 - 2021<b>", 
          font=list(size = 15, family = "Arial")))
 
 
@@ -184,6 +245,95 @@ ggplotly(ASFR_line_SYA, tooltip = "text") %>%
 ```
 
 
+
+```{r fig_London_TFR_3B, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+
+# Line plot of ASFR by year of age, showing change between 1993 - 2021, calculated by SYA
+
+catgreen6 = rev(c('#212b20', '#374f35', '#527450', '#759a72', '#a1c09e', '#d8e4d6'))
+#(made on 19th Sep from values on page 14 of CIU guidelines 212b20, 5ea15d, d8e4d6)
+
+ASFR_selected_lines_SYA <- London_ASFR_allYears %>%
+  filter(Year %in% c("1995", "2000", "2005", "2010", "2015", "2020")) %>%
+ # mutate(year = as.numeric(Year)) %>%
+  mutate(age_numeric = as.numeric(age_mother)) %>%
+  ggplot(aes(x = age_numeric, y = London_ASFR_perK, group = Year, color = Year, text = paste("Year  :", Year,
+                                                           "<br>Age : ", age_numeric,
+                                                          "<br>ASFR: ", round(London_ASFR_perK, digits = 3))
+             )) +
+  theme_gla() +
+  theme(legend.position = "right") +
+  geom_line(size=1) + 
+  scale_colour_manual(values = catgreen6) + 
+  ylim(0, 150) +
+  labs(title= "Age specific fertility rates, London, 1995 - 2020", 
+       caption = paste0("Source: ONS, Chart: GLA demography"))
+ASFR_selected_lines_SYA
+
+
+ggsave (filename = (paste0(chart_dir, "ASFR_London_SYA_selected_lines.png")),
+         plot = ASFR_selected_lines_SYA,
+         device = "png",
+         dpi=600,
+         width = 9,
+         height = 5.56,
+         units = "in")
+
+
+ggplotly(ASFR_selected_lines_SYA, tooltip = "text") %>%
+    style(hoverlabel = list(bgcolor = "white")) %>%
+    layout(title= list(x = 0.05,
+         text = "<b>Age specific fertility rates, London, 1995 - 2020<b>", 
+         font=list(size = 15, family = "Arial")))
+
+
+
+```
+
+
+```{r fig_London_TFR_3C, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+
+# Line plot of ASFR by year of age, showing change between 1993 - 2021, calculated by SYA
+
+catgreen6 = rev(c('#212b20', '#374f35', '#527450', '#759a72', '#a1c09e', '#d8e4d6'))
+#(made on 19th Sep from values on page 14 of CIU guidelines 212b20, 5ea15d, d8e4d6)
+
+ASFR_3selected_lines_SYA <- London_ASFR_allYears %>%
+  filter(Year %in% c("2000", "2010", "2020")) %>%
+ # mutate(year = as.numeric(Year)) %>%
+  mutate(age_numeric = as.numeric(age_mother)) %>%
+  ggplot(aes(x = age_numeric, y = London_ASFR_perK, group = Year, color = Year, text = paste("Year  :", Year,
+                                                           "<br>Age : ", age_numeric,
+                                                          "<br>ASFR: ", round(London_ASFR_perK, digits = 3))
+             )) +
+  theme_gla() +
+  theme(legend.position = "right") +
+  geom_line(size=1) + 
+  scale_colour_manual(values = catgreen6) + 
+  ylim(0, 150) +
+  labs(title= "Age specific fertility rates, London, 2000 - 2020", 
+       caption = paste0("Source: ONS, Chart: GLA demography"))
+ASFR_selected_lines_SYA
+
+
+ggsave (filename = (paste0(chart_dir, "ASFR_London_SYA_3selected_lines.png")),
+         plot = ASFR_3selected_lines_SYA,
+         device = "png",
+         dpi=600,
+         width = 9,
+         height = 5.56,
+         units = "in")
+
+
+ggplotly(ASFR_3selected_lines_SYA, tooltip = "text") %>%
+    style(hoverlabel = list(bgcolor = "white")) %>%
+    layout(title= list(x = 0.05,
+         text = "<b>Age specific fertility rates, London, 2000 - 2020<b>", 
+         font=list(size = 15, family = "Arial")))
+
+
+
+```
 
 
 ```{r setup3, include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
@@ -262,7 +412,7 @@ TFR_London_calc_group <- ASFR_London_calc_group %>%
 ```
 
 
-```{r fig_London_TFR_4, fig.height = 5, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+```{r fig_London_TFR_4, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
 
 # # Plotting London ASFR by age-group, over time
 
@@ -272,15 +422,25 @@ ASFR_London_line_group <- ASFR_London_calc_group %>%
                          "<br>ASFR: ", round(ASFR, digits = 3))
 )) +
   theme_gla() +
+  theme(legend.position = "right") +
   geom_line() +
   ylim(0, 150) +
-  labs(title= "Fig 4: AGE SPECIFIC FERTILITY RATE in London by age-category, 1993 - 2021", 
+  labs(title= "Age specific fertility rates in London by age-category, 1993 - 2021", 
        caption = paste0("Source: ONS, Chart: GLA demography"))
+
+ggsave (filename = (paste0(chart_dir, "ASFR_London_ageGroup_line.png")),
+         plot = ASFR_London_line_group,
+         device = "png",
+         dpi=600,
+         width = 9,
+         height = 5.56,
+         units = "in")
+
 
 ggplotly(ASFR_London_line_group, tooltip = "text") %>%
     style(hoverlabel = list(bgcolor = "white")) %>%
     layout(title= list(x = 0.05,
-         text = "<b>Fig 4: AGE SPECIFIC FERTILITY RATE in London by age-category, 1993 - 2021<b>", 
+         text = "<b>Age specific fertility rates in London by age-category, 1993 - 2021<b>", 
          font=list(size = 15, family = "Arial")))
 
 
@@ -364,7 +524,7 @@ TFR_calc <- ASFR_calc %>%
 
 ```
 
-```{r fig_London_TFR_5, fig.height = 5, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+```{r fig_London_TFR_5, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
 
 # # Plotting London ASFR by age-group, over time, for each borough (here Merton)
 

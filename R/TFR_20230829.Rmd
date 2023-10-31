@@ -35,7 +35,8 @@ library(rmdformats)
 #devtools::load_all("C:/demogtools/")
 
 data_dir <- 'C:/Families/Data/'
-chart_dir <- 'Charts/'
+chart_dir <- 'C:/Families/Charts/'
+
 #colour_palette <- gla_colour_palette()[c(3,6,2,4,5,7,1)]
 
 # Disable scientific notation
@@ -110,7 +111,7 @@ EandW_TFR_allYears <- EandW_ASFR_allYears %>%
   data.frame()
 
 
-# Calculate SMA (not using using method - see line 852 for new method) 
+# Calculate SMA (not using new method - see line 852 for new method) 
 EandW_SMA_allYears <- merged_EandW_births_pop_allYears %>%
   mutate(Age_mother = as.numeric(age_mother)) %>%
   mutate(ASFR = SUM_births/SUM_pop) %>%  # calculate ASFR for each SYA
@@ -325,7 +326,7 @@ London_TFR_allYears_boroughs_zone <- London_TFR_allYears_boroughs %>%
 
 ```
 
-```{r fig_London_Eng_ASFR, fig.height = 5, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+```{r fig_London_Eng_ASFR, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
 
 ## Line plot of ASFR for Rest of E and W and London, 2021
 
@@ -349,7 +350,7 @@ ASFR_London_EandW_line <- merged_ASFR_London_EandW %>%
                              "<br>ASFR: ", round(EandW_ASFR, digits = 2)) 
   ), size = 1) + 
   theme_gla() +
-  ylim(0, 120) +
+  scale_y_continuous (limits = c (0, 120), breaks = c (0, 20, 40, 60, 80, 100, 120)) + #set breaks on y-axis
   theme(axis.text.x=element_text(color = "black", 
                                  size=11, family = "Arial"),  #, angle=30, vjust=.8, hjust=0.8
         axis.text.y=element_text(color = "black", size=11, family = "Arial")) +
@@ -361,6 +362,14 @@ ASFR_London_EandW_line <- merged_ASFR_London_EandW %>%
         axis.text.y=element_text(color = "black", size=11, family = "Arial")) +
   labs(title= "Age-specific fertility rate, London and Rest of England & Wales, 2021", 
      caption = paste0("Source: ONS, Chart: GLA demography"))
+
+ggsave (filename = (paste0(chart_dir, "ASFR_London+EandW_line.png")),
+         plot = ASFR_London_EandW_line,
+         device = "png",
+         dpi=600,
+         width = 9,
+         height = 5.56,
+         units = "in")
 
 ASFR_London_EandW_line_int <- ggplotly(ASFR_London_EandW_line, tooltip = "text") %>%
   style(hoverlabel = list(bgcolor = "white")) %>%
@@ -381,7 +390,7 @@ ASFR_London_EandW_line_int
 ```
 
 
-```{r fig_London_zone_ASFR, fig.height = 5, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+```{r fig_London_zone_ASFR, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
 
 ## Line plot of ASFR for London 2021 - for inner and outer London
 
@@ -410,6 +419,14 @@ ASFR_London_line_zone <- London_ASFR_allYears_zone %>%
   labs(title= "Age-specific fertility rate, London, 2021", 
      caption = paste0("Source: ONS, Chart: GLA demography"))
 
+ggsave (filename = (paste0(chart_dir, "ASFR_London_Inner+Outer_line.png")),
+         plot = ASFR_London_line_zone,
+         device = "png",
+         dpi=600,
+         width = 9,
+         height = 5.56,
+         units = "in")
+
 
 ASFR_London_line_zone_int <- ggplotly(ASFR_London_line_zone, tooltip = "text") %>%
   style(hoverlabel = list(bgcolor = "white")) %>%
@@ -429,7 +446,7 @@ ASFR_London_line_zone_int
 ```
 
 
-```{r fig_London_zone_TFR, fig.height = 5, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+```{r fig_London_zone_TFR, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
 
 ## Line plot of TFR for London Zones
 
@@ -458,6 +475,14 @@ TFR_London_zone_line <- London_TFR_allYears_zone %>%
   labs(title= "Total fertility rate, London and Rest of England & Wales, 1993 - 2021", 
      caption = paste0("Source: ONS, Chart: GLA demography"))
 
+ggsave (filename = (paste0(chart_dir, "TFR_London_Inner+Outer_line.png")),
+         plot = TFR_London_zone_line,
+         device = "png",
+         dpi=600,
+         width = 9,
+         height = 5.56,
+         units = "in")
+
 TFR_London_zone_line_int <- ggplotly(TFR_London_zone_line, tooltip = "text") %>%
   style(hoverlabel = list(bgcolor = "white")) %>%
   layout(title= list(x = 0.05, 
@@ -476,7 +501,7 @@ TFR_London_zone_line_int
 ```
 
 
-```{r fig_London_Eng_TFR, fig.height = 5, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+```{r fig_London_Eng_TFR, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
 
 ## Line plot of TFR for London and Rest of England (excluding London) & Wales
 
@@ -499,7 +524,7 @@ TFR_London_EandW_line <- merged_TFR_London_EandW %>%
                              "<br>TFR: ", round(EandW_TFR, digits = 2)) 
   ), size = 1) + 
   theme_gla() +
-  ylim(1, 2) +
+  ylim(1, 2.4) +
   theme(axis.text.x=element_text(color = "black", 
                                  size=11, family = "Arial"),  #, angle=30, vjust=.8, hjust=0.8
         axis.text.y=element_text(color = "black", size=11, family = "Arial")) +
@@ -512,6 +537,14 @@ TFR_London_EandW_line <- merged_TFR_London_EandW %>%
         axis.text.y=element_text(color = "black", size=11, family = "Arial")) +
   labs(title= "Total fertility rate, London and Rest of England & Wales, 1993 - 2021", 
      caption = paste0("Source: ONS, Chart: GLA demography"))
+
+ggsave (filename = (paste0(chart_dir, "TFR_London+EandW_line.png")),
+         plot = TFR_London_EandW_line,
+         device = "png",
+         dpi=600,
+         width = 9,
+         height = 5.56,
+         units = "in")
 
 TFR_London_EandW_line_int <- ggplotly(TFR_London_EandW_line, tooltip = "text") %>%
   style(hoverlabel = list(bgcolor = "white")) %>%
@@ -532,7 +565,7 @@ TFR_London_EandW_line_int
 ```
 
 
-```{r fig_boroughs_TFR_1, fig.height = 5, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+```{r fig_boroughs_TFR_1, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
 
 ## Line plot of TFR over time for individual London boroughs, 1993 - 2021
 
@@ -584,7 +617,7 @@ TFR_boroughs_line_abs_zone <- merged_TFR_Borough_Zone %>%
                                  size=11, family = "Arial"),  #, angle=30, vjust=.8, hjust=0.8
         axis.text.y=element_text(color = "black", size=11, family = "Arial")) +
   #theme(legend.position='none') +
-  #ylim(25, 35) +
+  ylim(1, 2.4) +
 theme(legend.title=element_text(size=14, family = "Arial"),
         legend.text=element_text(size=11, family = "Arial"),
         axis.text.x=element_text(color = "black", 
@@ -596,6 +629,14 @@ theme(legend.title=element_text(size=14, family = "Arial"),
   scale_x_discrete(name ="Year", breaks=c("1991", "1996", "2001","2006","2011", "2016", "2021")) +
   labs(title= "TFR, London boroughs, 1993 - 2021", 
        caption = paste0("Source: ONS, Chart: GLA demography"))
+
+ggsave (filename = (paste0(chart_dir, "TFR_London+boroughs_values_line.png")),
+         plot = TFR_boroughs_line_abs_zone,
+         device = "png",
+         dpi=600,
+         width = 9,
+         height = 5.56,
+         units = "in")
 
 TFR_boroughs_line_abs_int <- ggplotly(TFR_boroughs_line_abs_zone, tooltip = "text") %>%
   style(hoverlabel = list(bgcolor = "white")) %>%
@@ -615,7 +656,7 @@ TFR_boroughs_line_abs_int
 ```
 
 
-```{r fig_boroughs_TFR_2, fig.height = 5, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+```{r fig_boroughs_TFR_2, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
 
 ## Line plot of TFR over time for individual London boroughs, 1993 - 2021, indexed to 1993
   
@@ -663,6 +704,14 @@ theme(legend.title=element_text(size=14, family = "Arial"),
   labs(title= "TFR, London boroughs, 1993 - 2021, Indexed to 1993", 
        caption = paste0("Source: ONS, Chart: GLA demography"))
 
+ggsave (filename = (paste0(chart_dir, "TFR_London+boroughs_indexed1993_line.png")),
+         plot = TFR_boroughs_line_ind1_zone ,
+         device = "png",
+         dpi=600,
+         width = 9,
+         height = 5.56,
+         units = "in")
+
 TFR_boroughs_line_ind1_int <- ggplotly(TFR_boroughs_line_ind1_zone, tooltip = "text") %>%
   style(hoverlabel = list(bgcolor = "white")) %>%
   layout(title= list(x = 0.05,
@@ -680,7 +729,7 @@ TFR_boroughs_line_ind1_int
 
 ```
 
-```{r fig_boroughs_TFR_3, fig.height = 5, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+```{r fig_boroughs_TFR_3, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
 
 ## Line plot of TFR over time for individual London boroughs, 2010 - 2021, indexed to 2010
   
@@ -726,6 +775,14 @@ theme(legend.title=element_text(size=14, family = "Arial"),
   labs(title= "TFR, London boroughs, 2011 - 2021, Indexed to 2011", 
        caption = paste0("Source: ONS, Chart: GLA demography"))
 
+ggsave (filename = (paste0(chart_dir, "TFR_London+boroughs_indexed2010_line.png")),
+         plot = TFR_boroughs_line_ind2_zone ,
+         device = "png",
+         dpi=600,
+         width = 9,
+         height = 5.56,
+         units = "in")
+
 TFR_boroughs_line_ind2_int <- ggplotly(TFR_boroughs_line_ind2_zone, tooltip = "text") %>%
   style(hoverlabel = list(bgcolor = "white")) %>%
   layout(title= list(x = 0.05,
@@ -743,7 +800,7 @@ TFR_boroughs_line_ind2_int
 ```
 
 
-```{r fig_boroughs_ASFR, fig.height = 5, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+```{r fig_boroughs_ASFR, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
 
 ## Line plot of ASFR for individual London boroughs, 2021
 
@@ -794,7 +851,7 @@ ASFR_boroughs_line_zone <- merged_ASFR_Borough_Zone %>%
                                                  "<br>Borough: ", gss_name, 
                                                  "<br>ASFR: ", round(ASFR_perK , digits = 2))) ) + 
   theme_gla() +
-  ylim(0, 110) +
+  scale_y_continuous (limits = c (0, 120), breaks = c (0, 20, 40, 60, 80, 100, 120)) + #set breaks on y-axis
   scale_color_manual(name='London Zone:', values = catcolour2) +
   theme(axis.text.x=element_text(color = "black", 
                                  size=11, family = "Arial"),  #, angle=30, vjust=.8, hjust=0.8
@@ -807,6 +864,13 @@ ASFR_boroughs_line_zone <- merged_ASFR_Borough_Zone %>%
   labs(title= "Age-specific fertility rate, London, 2021", 
      caption = paste0("Source: ONS, Chart: GLA demography"))
 
+ggsave (filename = (paste0(chart_dir, "ASFR_London+boroughs_values_line.png")),
+         plot = ASFR_boroughs_line_zone,
+         device = "png",
+         dpi=600,
+         width = 9,
+         height = 5.56,
+         units = "in")
 
 ASFR_boroughs_line_zone_int <- ggplotly(ASFR_boroughs_line_zone, tooltip = "text") %>%
   style(hoverlabel = list(bgcolor = "white")) %>%
@@ -827,9 +891,7 @@ ASFR_boroughs_line_zone_int
 
 
 
-```{r fig_London_SMA_7, fig.height = 5, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
-
-
+```{r fig_London_SMA_7, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
 
 #---------------------------------------------------------------------------------------------------------
 ## SMA FOR INDIVIDUAL BOROUGHS OVER TIME  (using data commissioned from ONS)
@@ -892,12 +954,57 @@ SMA_absChange_scatterplot1 <- London_SMA_allYears_boroughs_zone %>%
        caption = paste0("Source: ONS, Chart: GLA demography"))
 SMA_absChange_scatterplot1
 
+ggsave (filename = (paste0(chart_dir, "SMA_London_change_1993_scatterplot.png")),
+         plot = SMA_absChange_scatterplot1,
+         device = "png",
+         dpi=600,
+         width = 9,
+         height = 5.56,
+         units = "in")
+
 
 ```
 
 
 
-```{r fig_London_SMA_8, fig.height = 5, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+```{r fig_London_SMA_9, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+
+
+## Scatterplot of TFR  v. SMA in 2021 for individual London boroughs
+
+catcolour2 = c('#ee266d', '#6da7de')
+
+library(ggrepel)
+
+TFR_vSMA_scatterplot <- London_SMA_allYears_boroughs_zone %>%
+  filter(gss_name != "City of London") %>%
+  mutate(year_numeric = as.numeric(Year)) %>%
+  mutate(year_factor = as.factor(Year)) %>%
+  filter(year_factor == "2021") %>% 
+  ggplot(aes(x = SMA, y = TFR, color=Inner_factor)) +
+  geom_point(shape=18,  size = 4) +
+  scale_color_manual(name='London Zone:', values = catcolour2) +
+  theme_gla(x_axis_title = TRUE,  y_axis_title = TRUE, free_y_facets = TRUE)+
+  labs(x = "SMA value in 2021", 
+       y = "TFR value in 2021") +
+  geom_text_repel(aes(label = gss_name), size = 4) +
+  labs(title= "Scatterplot of TFR v. SMA for London boroughs, 2021", 
+       caption = paste0("Source: ONS, Chart: GLA demography"))
+TFR_vSMA_scatterplot
+
+ggsave (filename = (paste0(chart_dir, "TFR_vSMA_scatterplot.png")),
+         plot = TFR_vSMA_scatterplot,
+         device = "png",
+         dpi=600,
+         width = 9,
+         height = 5.56,
+         units = "in")
+
+```
+
+
+
+```{r fig_London_SMA_8, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
 
 
 ## Scatterplot of absolute change in SMA between 2011 and 2021 v. SMA in 2011 for individual London boroughs
@@ -930,10 +1037,18 @@ SMA_absChange_scatterplot2 <- London_SMA_allYears_boroughs_zone %>%
        caption = paste0("Source: ONS, Chart: GLA demography"))
 SMA_absChange_scatterplot2
 
+ggsave (filename = (paste0(chart_dir, "SMA_London_change_2011_scatterplot.png")),
+         plot = SMA_absChange_scatterplot2,
+         device = "png",
+         dpi=600,
+         width = 9,
+         height = 5.56,
+         units = "in")
 
 ```
 
-```{r fig_London_TFR_4, fig.height = 5, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+
+```{r fig_London_TFR_4, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
 
 # MAPPING TFR FOR 2021
 
@@ -957,7 +1072,15 @@ TFR_2021_boroughs_geog <- London_TFR_allYears_boroughs %>%
   data.frame()
     
 #catgreen4 = c('#eeeeee', '#acc1aa', '#739272', '#4a6349')
-catgreen5 = c("#edf8e9", "#bae4b3", "#74c476", "#31a354", "#006d2c")
+#catgreen5 = c("#edf8e9", "#bae4b3", "#74c476", "#31a354", "#006d2c")
+
+
+catgreen5 = c('#3f633e', '#578555', '#7aa677', '#a6c6a2', '#d8e4d6')
+#(made on 5th Sep from values on page 16 of CIU guidelines 3f633e, 5ea15d, d8e4d6)
+
+catgreen5B = c('#212b20', '#3d583b', '#638760', '#95b792', '#d8e4d6')
+#(made on 19th Sep from values on page 14 of CIU guidelines 212b20, 5ea15d, d8e4d6)
+
 names(catgreen5) <- levels(TFR_2021_boroughs_geog$TFRCat)
 
 # Static map 
@@ -988,6 +1111,14 @@ TFR_2021_map <- TFR_2021_boroughs_geog %>%
   labs(title= "Total Fertility Rate, London, 2021", 
        caption = paste0("Source: ONS, Chart: GLA demography")) +
          labs(fill = "TFR")
+
+ggsave (filename = (paste0(chart_dir, "TFR_2021_map.png")),
+         plot = TFR_2021_map,
+         device = "png",
+         dpi=600,
+         width = 9,
+         height = 5.56,
+         units = "in")
 
 # Interactive map using ggplotly
 TFR_2021_map_int <- ggplotly(TFR_2021_map, tooltip = "text") %>%

@@ -35,7 +35,7 @@ library(rmdformats)
 #devtools::load_all("C:/demogtools/")
 
 data_dir <- 'C:/Families/Data/'
-chart_dir <- 'Charts/'
+chart_dir <- 'C:/Families/Charts/'
 #colour_palette <- gla_colour_palette()[c(3,6,2,4,5,7,1)]
 
 # Disable scientific notation
@@ -63,7 +63,7 @@ ASFR_data_long <- ASFR_data_wide %>%
 ```
 
 
-```{r fig_London_ASFR_1, fig.height = 5, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+```{r fig_London_ASFR_1, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
 
 # Line plot of ASFR for London in 2021, calculated by SYA
 
@@ -75,16 +75,26 @@ ASFR_2021_line <- ASFR_data_long %>%
                          "<br>ASFR: ", round(ASFR, digits = 2))
 )) +
   theme_gla() +
+  theme(legend.position = "right") +
   geom_line(size = 1) + 
   scale_x_discrete(limits = level_order) +
   ylim(0, 150) +
-  labs(title= "AGE SPECIFIC FERTILITY RATE by location of mothers' birth, 2021", 
+  labs(title= "Age specific fertility rate by location of mothers' birth, 2021", 
        caption = paste0("Source: ONS, Chart: GLA demography"))
+
+ggsave (filename = (paste0(chart_dir, "ASFR_COB2021_line.png")),
+         plot = ASFR_2021_line,
+         device = "png",
+         dpi=600,
+         width = 9,
+         height = 5.56,
+         units = "in")
+
 
 ASFR_2021_line_int <- ggplotly(ASFR_2021_line, tooltip = "text") %>%
     style(hoverlabel = list(bgcolor = "white")) %>%
     layout(title= list(x = 0.05,
-         text = "<b>AGE SPECIFIC FERTILITY RATE by location of mothers' birth, 2021<b>", 
+         text = "<b>Age specific fertility rate by location of mothers' birth, 2021<b>", 
          font=list(size = 15, family = "Arial")))
 ASFR_2021_line_int
 
@@ -93,7 +103,7 @@ ASFR_2021_line_int
 
 
 
-```{r fig_London_ASFR_2, fig.height = 5, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+```{r fig_London_ASFR_2, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
 
 # Line plot of ASFR by age-group, showing change between 2004 - 2021 for mothers born in UK
 
@@ -107,23 +117,32 @@ ASFR_inUK_line_time <- ASFR_data_long %>%
                                                           "<br>ASFR: ", round(ASFR, digits = 3))
              )) +
   theme_gla() +
+  theme(legend.position = "right") +
   geom_line() + 
   scale_colour_gradient(low = "#edf8e9", high = "#006d2c") +
   scale_x_discrete(limits = level_order) +  
   ylim(0, 150) +
-  labs(title= "AGE SPECIFIC FERTILITY RATE for mothers born inside UK, 2004 - 2021", 
+  labs(title= "Age specific fertility rate for mothers born inside UK, 2004 - 2021", 
        caption = paste0("Source: ONS, Chart: GLA demography"))
+
+ggsave (filename = (paste0(chart_dir, "ASFR_COBinUK_line.png")),
+         plot = ASFR_inUK_line_time,
+         device = "png",
+         dpi=600,
+         width = 9,
+         height = 5.56,
+         units = "in")
 
 ASFR_inUK_line_time_int <- ggplotly(ASFR_inUK_line_time, tooltip = "text") %>%
     style(hoverlabel = list(bgcolor = "white")) %>%
     layout(title= list(x = 0.05,
-         text = "<b>AGE SPECIFIC FERTILITY RATE for mothers born inside UK, 2001 - 2021<b>", 
+         text = "<b>Age specific fertility rate for mothers born inside UK, 2001 - 2021<b>", 
          font=list(size = 15, family = "Arial")))
 ASFR_inUK_line_time_int
 
 ```
 
-```{r fig_London_ASFR_3, fig.height = 5, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+```{r fig_London_ASFR_3, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
 
 # Line plot of ASFR by age-group, showing change between 2001 - 2021 for mothers born outside UK
 
@@ -137,17 +156,27 @@ ASFR_outUK_line_time <- ASFR_data_long %>%
                                                           "<br>ASFR: ", round(ASFR, digits = 3))
              )) +
   theme_gla() +
+  theme(legend.position = "right") +
   geom_line() + 
   scale_colour_gradient(low = "#edf8e9", high = "#006d2c") +
   scale_x_discrete(limits = level_order) +  
   ylim(0, 150) +
-  labs(title= "AGE SPECIFIC FERTILITY RATE for mothers born inside UK, 2004 - 2021", 
+  labs(title= "Age specific fertility rate for mothers born inside UK, 2004 - 2021", 
        caption = paste0("Source: ONS, Chart: GLA demography"))
+
+ggsave (filename = (paste0(chart_dir, "ASFR_COBoutUK_line.png")),
+         plot = ASFR_outUK_line_time,
+         device = "png",
+         dpi=600,
+         width = 9,
+         height = 5.56,
+         units = "in")
+
 
 ASFR_outUK_line_time_int <- ggplotly(ASFR_outUK_line_time, tooltip = "text") %>%
     style(hoverlabel = list(bgcolor = "white")) %>%
     layout(title= list(x = 0.05,
-         text = "<b>AGE SPECIFIC FERTILITY RATE for mothers born inside UK, 2004 - 2021<b>", 
+         text = "<b>Age specific fertility rate for mothers born inside UK, 2004 - 2021<b>", 
          font=list(size = 15, family = "Arial")))
 ASFR_outUK_line_time_int
 
@@ -173,27 +202,38 @@ TFR_data_long <- TFR_data_wide %>%
 ```
 
 
-```{r fig_London_TFR, fig.height = 5, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+```{r fig_London_TFR, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
 
-# Line plot of TFR by age-group, by year and location of mothers' birth
+# Line plot of TFR by year and location of mothers' birth
 
 level_order <- c('Under 20', '20 to 24', '25 - 29', '30 to 34', '35 to 39', '40 and over')
 
 TFR_line_time <- TFR_data_long %>%
   mutate(Year_new = as.numeric(gsub("X","", Year))) %>%
-  ggplot(aes(x = Year_new, y = TFR, group = Location, colour = Location, text = paste("Year  :", Year_new,
-                                                           "<br>Group : ", Location,                                                                                      "<br>Age-group : ", Age_group,
+  mutate(Location_factor = factor(Location, labels = c('All women', 'Inside UK', 'Outside UK'))) %>%
+  ggplot(aes(x = Year_new, y = TFR, group = Location, colour = Location_factor, 
+                                                text = paste("Year  :", Year_new,
+                                                          "<br>Location of birth : ", Location,
                                                            "<br>TFR: ", round(TFR, digits = 3))
              )) +
   theme_gla() +
-  geom_line() + 
-  labs(title= "TOTAL FERTILITY RATE by location of mothers' birth, 2004 - 2021", 
+  theme(legend.position = "right") +
+  geom_line(size = 1) + 
+  labs(title= "Total fertility rate by location of mothers' birth, 2004 - 2021", 
        caption = paste0("Source: ONS, Chart: GLA demography"))
+
+ggsave (filename = (paste0(chart_dir, "TFR_COB_line.png")),
+         plot = TFR_line_time,
+         device = "png",
+         dpi=600,
+         width = 9,
+         height = 5.56,
+         units = "in")
 
 TFR_line_time_int <- ggplotly(TFR_line_time, tooltip = "text") %>%
     style(hoverlabel = list(bgcolor = "white")) %>%
     layout(title= list(x = 0.05,
-         text = "<b>TOTAL FERTILITY RATE by location of mothers' birth, 2004 - 2021<b>", 
+         text = "<b>Total fertility rate by location of mothers' birth, 2004 - 2021<b>", 
          font=list(size = 15, family = "Arial")))
 TFR_line_time_int
 
