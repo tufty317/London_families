@@ -1,0 +1,556 @@
+---
+title: "TFR analysis, August 29th 2023"
+output: 
+  html_document:
+    css: Wil_style.css
+    theme: default
+    toc: TRUE
+    toc_float: TRUE
+    number_sections: TRUE
+always_allow_html: yes
+---
+
+```{r setup1, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+
+library(zoo)
+library(data.table)
+library(tidyverse)
+library(gglaplot)
+library(ggplot2)
+library(scales)
+library(readxl)
+library(knitr)
+library(sf)
+library(sp)
+library(kableExtra)
+library(magick)
+library(plotly)    
+library(RColorBrewer)
+library(htmltools)
+library(prettydoc)
+library(rmdformats)
+
+#devtools::load_all("C:/demogtools/")
+
+data_dir <- 'C:/Families/Data/'
+chart_dir <- 'C:/Families/Charts/'
+
+#colour_palette <- gla_colour_palette()[c(3,6,2,4,5,7,1)]
+
+# Disable scientific notation
+options(scipen=999)
+
+```
+
+
+```{r setup2, include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
+
+## ASFR and TFR FOR REST OF ENGLAND AND WALES OVER TIME (using data commissioned from ONS)
+# (this is different from 20230807 where I compared with whole of England)
+
+# Read in data for all births from 1993 to 2021 in England and Wales, excluding London
+
+EandW_births <- readRDS("C:/Families/Data/Births_by_SYA_1993-2021/births_calendar_year_age_mother_lad.rds") %>%   filter(!grepl('E09000', gss_code)) %>%
+  data.frame
+
+# Recode the extreme ages, and group data by year and age of mother 
+# Label using mid-point of age groups 15 - 19 for "Under 20" and of age-group 40 - 44 for "40 and over"
+
+EandW_births_grouped <- EandW_births %>%
+  filter(age_mother !="total") %>%
+  mutate(age_mother = recode(age_mother, 'Under 20'='17', '40 and over'='42')) %>% 
+  mutate(Year = as.character(year)) %>%
+  group_by(Year, age_mother) %>% 
+  summarize(SUM_births = sum(value)) %>%
+  data.frame()
+
+# Read in population data (these data are from 1991 and whole UK), selecting for only English women 
+# Start from 1993 to correspond to births data.
+
+EandW_female_pop <-  readRDS("C:/Families/GLA_population/pop_1991_2021_age_0to85plus.rds") %>% 
+  filter(grepl('W06000', gss_code) | grepl('E08000', gss_code) |  grepl('E07000', gss_code) |  grepl('E06000', gss_code)) %>%
+   filter(year >1992) %>%
+   filter(sex == "female") %>%  
+   data.frame()
+
+# Select only the ages that correspond to the ONS calculation of sub-national TFR 
+# that is, for the group <20 years, use 15 - 19, and for the group 40 years and over, use 40 - 44.
+# Label these two groups with the mid-point age, that is, 17 and 42.
+
+EandW_female_pop_all_recode <- EandW_female_pop %>%
+  filter(age > 14) %>%
+  filter(age < 45) %>%
+  mutate(age=replace(age, age<20, 17)) %>%
+  mutate(age=replace(age, age>39, 42)) %>%
+  mutate(Age = as.character(age)) %>% 
+  mutate(Year = as.character(year)) %>%
+  group_by(Year, Age) %>% 
+  summarize(SUM_pop = sum(value)) %>%
+  data.frame()
+  
+# Merge population and births data 
+merged_EandW_births_pop_allYears = left_join(EandW_births_grouped, EandW_female_pop_all_recode, 
+                                  by=c("Year" = "Year", "age_mother" = "Age")) %>%
+  data.frame()
+
+# Calculate ASFR
+EandW_ASFR_allYears <- merged_EandW_births_pop_allYears %>%
+  mutate(EandW_ASFR = (SUM_births/SUM_pop)) %>%
+  mutate(EandW_ASFR_perK = ((SUM_births/SUM_pop) *1000)) %>%
+  data.frame()
+
+# Calculate new TFR
+EandW_TFR_allYears <- EandW_ASFR_allYears %>%
+   mutate(EandW_ASFR_new = case_when(age_mother == 17 ~ EandW_ASFR*5, 
+                             age_mother == 42 ~ EandW_ASFR*5,
+                             TRUE ~ EandW_ASFR)) %>%   # NEW on 29/08
+  group_by(Year) %>% 
+  summarise(EandW_TFR = sum(EandW_ASFR_new)) %>%
+  data.frame()
+
+
+# Calculate SMA (not using new method - see line 852 for new method) 
+EandW_SMA_allYears <- merged_EandW_births_pop_allYears %>%
+  mutate(Age_mother = as.numeric(age_mother)) %>%
+  mutate(ASFR = SUM_births/SUM_pop) %>%  # calculate ASFR for each SYA
+  mutate(AgeXASFR = ASFR * Age_mother) %>%
+  group_by(Year) %>%
+  summarize(SUM_ASFR = sum(ASFR),  # This is equiv to TFR
+            SUM_AgeXASFR = sum(AgeXASFR)) %>%
+  mutate(EandW_SMA = (SUM_AgeXASFR / SUM_ASFR) +0.5) %>%
+  mutate(EandW_TFR = SUM_ASFR) %>%
+  data.frame()
+
+
+```
+
+
+```{r setup3, include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
+
+## ASFR and TFR FOR LONDON OVER TIME (using data commissioned from ONS)
+
+# Read in data for all births from 1993 to 2021 in England
+
+London_births <- readRDS("C:/Families/Data/Births_by_SYA_1993-2021/births_calendar_year_age_mother_lad.rds") %>%  
+  filter(grepl('E09', gss_code)) %>%
+  data.frame
+
+London_births_grouped <- London_births %>%
+  filter(age_mother !="total") %>%
+  mutate(age_mother = recode(age_mother, 'Under 20'='17', '40 and over'='42')) %>% 
+  mutate(Year = as.character(year)) %>%
+  group_by(Year, age_mother) %>% 
+  summarize(SUM_births = sum(value)) %>%
+  data.frame()
+
+# Read in population data (data are from 1991 and whole UK) and select for London, only women, and from 1993
+
+London_female_pop <-  readRDS("C:/Families/GLA_population/pop_1991_2021_age_0to85plus.rds") %>%
+  filter(grepl('E09000', gss_code)) %>% 
+  filter(year >1992) %>%
+  filter(sex == "female") %>%  
+  data.frame()
+
+# Group the ages to be equivalent to births
+
+London_female_pop_all_recode <- London_female_pop %>%
+  filter(age > 14) %>%
+  filter(age < 45) %>%
+  mutate(age=replace(age, age<20, 17)) %>%
+  mutate(age=replace(age, age>39, 42)) %>%
+  mutate(Age = as.character(age)) %>% 
+  mutate(Year = as.character(year)) %>%
+  group_by(Year, Age) %>% 
+  summarize(SUM_pop = sum(value)) %>%
+  data.frame()
+
+# Merge population and births data 
+merged_London_births_pop_allYears = left_join(London_births_grouped, London_female_pop_all_recode, 
+                                  by=c("Year" = "Year", "age_mother" = "Age")) %>%
+  data.frame()
+
+# sum for plot comparing population and births
+
+total_London_births_pop <- merged_London_births_pop_allYears %>%
+  group_by(Year) %>% 
+  summarize(Total_births = sum(SUM_births), 
+            Total_pop = sum(SUM_pop)) %>%
+  data.frame()
+
+
+# Calculate Age Specific Fertility Rate 
+London_ASFR_allYears <- merged_London_births_pop_allYears %>%
+  mutate(London_ASFR = (SUM_births/SUM_pop)) %>%
+  mutate(London_ASFR_perK = ((SUM_births/SUM_pop) *1000)) %>%
+  data.frame()
+
+# Calculate Total Fertility Rate
+London_TFR_allYears <- London_ASFR_allYears %>%
+   mutate(London_ASFR_new = case_when(age_mother == 17 ~ London_ASFR*5, 
+                             age_mother == 42 ~ London_ASFR*5,
+                             TRUE ~ London_ASFR)) %>%   # NEW on 29/08
+  group_by(Year) %>% 
+  summarise(London_TFR = sum(London_ASFR_new)) %>%
+  data.frame()
+
+```
+
+
+```{r fig_births_and_pop, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+
+catcolour2 = c('#ee266d', '#6da7de')
+
+births_and_pop_line <- total_London_births_pop %>%
+  mutate(Year = as.numeric(Year)) %>%
+  ggplot() +
+  geom_line(aes(x = Year, y = Total_births/1000, group = 1, colour = "Births (thousands)"
+                # text = paste("Zone: ", Inner_factor,
+                #              "<br>Year: ", Year.x,
+                #              "<br>Actual births: ", round(SUM_actual_births, digits = 0))
+  ), size = 1) + 
+    geom_line(aes(x = Year, y = Total_pop/10000, group = 1, colour = "Population of potential mothers (tens of thousands)"
+       # text = paste("Zone: ", Inner_factor,
+       #              "<br>Year: ", Year.x,
+       #              "<br>Modelled births with 2013 ASFR: ", round(SUM_ASFRconst_births, digits = 0))
+  ), size = 1) + 
+    theme_gla() +
+  theme(axis.text.x=element_text(color = "black", 
+                                 size=11, family = "Arial"),  #, angle=30, vjust=.8, hjust=0.8
+        axis.text.y=element_text(color = "black", size=11, family = "Arial")) +
+    scale_linetype_manual(name='London Zone:', values=c('Inner London'="solid", 'Outer London'="dashed")) +
+    scale_x_continuous (limits = c (1990, 2020), breaks = c (1990, 1995, 2000, 2005, 2010, 2015, 2020)) + 
+    scale_y_continuous (limits = c (0, 225)) + 
+    scale_color_manual(name='', values=c('Births (thousands)'= '#943fab', 
+                                               'Population of potential mothers (tens of thousands)'='#5ea15d')) +
+  
+     theme(legend.title=element_text(size=14, family = "Arial"),
+        legend.text=element_text(size=11, family = "Arial"),
+        axis.text.x=element_text(color = "black", 
+                                 size=11, family = "Arial"),  #, angle=30, vjust=.8, hjust=0.8
+        axis.text.y=element_text(color = "black", size=11, family = "Arial")) +
+  labs(title= "Births and population", 
+     caption = paste0("Source: ONS, Chart: GLA demography"))
+births_and_pop_line
+
+ggsave (filename = (paste0(chart_dir, "births_and_pop_line.png")),
+         plot = births_and_pop_line,
+         device = "png",
+         dpi=600,
+         width = 9,
+         height = 5.56,
+         units = "in")
+
+# modelled_births_line_int <- ggplotly(modelled_births_line, tooltip = "text") %>%
+#   style(hoverlabel = list(bgcolor = "white")) %>%
+#   layout(title= list(x = 0.05,
+#                      text = "<b>Modelled births (thousands)<b>",
+#                      font=list(size = 15, family = "Arial", color = "black", fontface = "bold")),
+#           legend=list(title=list(text='', font = list(size = 15, family = "Arial", color = "black", fontface = "bold"))),
+#           xaxis = list(title = list(text ='Year',
+#                                    font = list(size = 15, family = "Arial", color = "black",
+#                                                fontface = "bold"))),
+#           yaxis = list(title = list(text ='Births',
+#                                    font = list(size = 15, family = "Arial", color = "black",
+#                                                fontface = "bold")))
+#                  )
+# modelled_births_line_int
+
+
+```
+
+
+
+
+```{r setup4, include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
+
+## ASFR FOR LONDON ZONES OVER TIME (using data commissioned from ONS)
+
+boroughcodes <- read.csv("C:/Migration/Migration_R/DATA/Domestic/InnerLondon.csv") %>%   
+  data.frame
+
+# Use births data from above for London from 1993 to 2021 but group using  as well this time
+
+#London_births <- readRDS("C:/Families/Data/Births_by_SYA_1993-2021/births_calendar_year_age_mot#her_lad.rds") %>%  
+#  filter(grepl('E09', gss_code)) %>%
+#  data.frame
+
+London_births_zone_grouped <- London_births %>%
+  filter(age_mother !="total") %>%
+  left_join(boroughcodes, by=c("gss_code"="BoroughCode"))%>% 
+  mutate(Inner_factor= recode(Inner, "1"="Inner", "0"="Outer")) %>%
+  mutate(age_mother = recode(age_mother, 'Under 20'='17', '40 and over'='42')) %>% 
+  mutate(Year = as.character(year)) %>%
+  group_by(Year, age_mother, Inner) %>% 
+  summarize(SUM_births = sum(value)) %>%
+  data.frame()
+
+
+# For population data, this time merge with Zone code so that can group using this (as well as Age and Year)
+
+London_female_pop_zone <- London_female_pop %>%
+  left_join(boroughcodes, by=c("gss_code"="BoroughCode"))%>% 
+  filter(age > 14) %>%
+  filter(age < 45) %>%
+  mutate(age2 = case_when(age < 20 ~ 17,
+                          age > 39 ~ 42,
+                          TRUE ~ age )) %>%
+  mutate(Age = as.character(age2)) %>% 
+  mutate(Year = as.character(year)) %>%
+  summarise(SUM_pop = sum(value), .by = c(Year, Age, Inner)) %>%
+  data.frame()
+
+# Merge population and births data 
+merged_London_births_pop_allYears_zone = left_join(London_births_zone_grouped, London_female_pop_zone, 
+                                  by=c("Year" = "Year", "age_mother" = "Age", "Inner" = "Inner")) %>%
+  mutate(Inner_factor= recode(Inner, "1"="Inner", "0"="Outer")) %>%
+  data.frame()
+
+# Calculate ASFR for each zone
+London_ASFR_allYears_zone <- merged_London_births_pop_allYears_zone %>%
+  mutate(London_zone_ASFR = (SUM_births/SUM_pop)) %>%
+  mutate(London_zone_ASFR_perK = ((SUM_births/SUM_pop) *1000)) %>%
+  data.frame()
+
+# Calculate TFR for each zone
+London_TFR_allYears_zone <- London_ASFR_allYears_zone %>%
+  mutate(London_zone_ASFR_new = case_when(age_mother == 17 ~ London_zone_ASFR*5, 
+                             age_mother == 42 ~ London_zone_ASFR*5,
+                             TRUE ~ London_zone_ASFR)) %>%   # NEW on 29/08
+  group_by(Year, Inner) %>% 
+  summarise(London_zone_TFR = sum(London_zone_ASFR_new)) %>%
+  data.frame()
+
+```
+
+
+```{r setup5B, include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
+
+# (1) Hold population constant and apply to changing ASFR
+
+# Select population just for 2013
+London_female_pop_2013_zone <- London_female_pop_zone %>%
+  filter(Year == 2013) %>%
+  mutate(Pop_2013 = SUM_pop) %>%
+  data.frame()
+
+# Merge with ASFR data
+
+Modelled_births_Popconst <- London_ASFR_allYears_zone %>%
+  left_join(London_female_pop_2013_zone, by=c("age_mother" = "Age", "Inner" = "Inner")) %>% 
+  filter(Year.x > 2012) %>%
+  mutate(births_mod_constPop =  Pop_2013*London_zone_ASFR) %>%
+  group_by(Year.x, Inner) %>% 
+  summarise(SUM_Popconst_births = sum(births_mod_constPop),
+           SUM_actual_births = sum(SUM_births)) %>%
+  data.frame()
+
+
+# (2) Hold ASFR constant and apply to changing population
+
+# Select ASFR rates just for 2013.
+London_ASFR_2013_zone <- London_ASFR_allYears_zone %>%
+  filter(Year == 2013) %>%
+  mutate(London_zone_ASFR_2013 = London_zone_ASFR) %>%
+  data.frame()
+
+# Merge with population data
+
+Modelled_births_ASFRconst <- London_female_pop_zone %>%
+  left_join(London_ASFR_2013_zone, by=c("Age" = "age_mother", "Inner" = "Inner")) %>%
+  filter(Year.x > 2012) %>%
+  mutate(births_mod_constASFR = SUM_pop.x*London_zone_ASFR_2013) %>%
+  group_by(Year.x, Inner) %>% 
+  summarise(SUM_ASFRconst_births = sum(births_mod_constASFR)) %>%
+  data.frame()
+
+# Combine dataframes
+
+merged_modelled_births <- Modelled_births_ASFRconst %>%
+  left_join(Modelled_births_Popconst,  by=c("Year.x" = "Year.x", "Inner" = "Inner")) %>%
+  mutate(Inner_factor= recode(Inner, "1"="Inner London", "0"="Outer London")) %>%
+  data.frame()
+
+total_modelled_births <- merged_modelled_births %>%
+  group_by(Inner) %>% 
+  summarize(Total_actual_births = sum(SUM_actual_births), 
+            Total_ASFRconst_births = sum(SUM_ASFRconst_births),
+            Total_Popconst_births = sum(SUM_Popconst_births)) %>%
+  mutate(Inner_factor= recode(Inner, "1"="Inner London", "0"="Outer London")) %>%
+  data.frame()
+
+total_modelled_births2 <- total_modelled_births %>%
+    summarize_if(is.numeric, sum, na.rm=TRUE) %>%
+    data.frame()
+
+
+  
+```
+
+
+```{r fig_modelled_births_zone, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+
+catcolour2 = c('#ee266d', '#6da7de')
+
+modelled_births_zone_line <- merged_modelled_births %>%
+  ggplot() +
+  geom_line(aes(x = Year.x, y = SUM_actual_births/1000, group = Inner_factor, colour = "Actual births", linetype = Inner_factor,
+                text = paste("Zone: ", Inner_factor,
+                             "<br>Year: ", Year.x,
+                             "<br>Actual births: ", round(SUM_actual_births, digits = 0))
+  ), size = 1) + 
+    geom_line(aes(x = Year.x, y = SUM_ASFRconst_births/1000, group = Inner_factor, colour = "Births with 2013 ASFR", linetype = Inner_factor,
+       text = paste("Zone: ", Inner_factor,
+                    "<br>Year: ", Year.x,
+                    "<br>Modelled births with 2013 ASFR: ", round(SUM_ASFRconst_births, digits = 0))
+  ), size = 1) + 
+   geom_line(aes(x = Year.x, y = SUM_Popconst_births/1000, group = Inner_factor, colour = "Births with 2013 population", linetype = Inner_factor,
+        text = paste("Zone: ", Inner_factor,
+                     "<br>Year: ", Year.x,
+                     "<br>Modelled births with 2013 Population: ", round(SUM_Popconst_births, digits = 0))
+  ), size = 1) +  
+    theme_gla() +
+  theme(axis.text.x=element_text(color = "black", 
+                                 size=11, family = "Arial"),  #, angle=30, vjust=.8, hjust=0.8
+        axis.text.y=element_text(color = "black", size=11, family = "Arial")) +
+    scale_linetype_manual(name='London Zone:', values=c('Inner London'="solid", 'Outer London'="dashed")) +
+    scale_color_manual(name='Model:', values=c('Actual births'= '#943fab', 
+                                               'Births with 2013 ASFR'='#5ea15d', 
+                                               'Births with 2013 population' = "orange")) +
+  theme(legend.title=element_text(size=14, family = "Arial"),
+        legend.text=element_text(size=11, family = "Arial"),
+        axis.text.x=element_text(color = "black", 
+                                 size=11, family = "Arial"),  #, angle=30, vjust=.8, hjust=0.8
+        axis.text.y=element_text(color = "black", size=11, family = "Arial")) +
+  labs(title= "Modelled births (thousands)", 
+     caption = paste0("Source: ONS, Chart: GLA demography"))
+#modelled_births_zone_line
+
+# ggsave (filename = (paste0(chart_dir, "modelled_births_zone_line.png")),
+#          plot = modelled_births_zone_line,
+#          device = "png",
+#          dpi=600,
+#          width = 9,
+#          height = 5.56,
+#          units = "in")
+
+modelled_births_line_int <- ggplotly(modelled_births_zone_line, tooltip = "text") %>%
+  style(hoverlabel = list(bgcolor = "white")) %>%
+  layout(title= list(x = 0.05,
+                     text = "<b>Modelled births (thousands)<b>",
+                     font=list(size = 15, family = "Arial", color = "black", fontface = "bold")),
+          legend=list(title=list(text='', font = list(size = 15, family = "Arial", color = "black", fontface = "bold"))),
+          xaxis = list(title = list(text ='Year',
+                                   font = list(size = 15, family = "Arial", color = "black",
+                                               fontface = "bold"))),
+          yaxis = list(title = list(text ='Births',
+                                   font = list(size = 15, family = "Arial", color = "black",
+                                               fontface = "bold")))
+                 )
+modelled_births_line_int
+
+
+```
+
+
+```{r fig_modelled_births_London, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+
+catcolour2 = c('#ee266d', '#6da7de')
+
+modelled_births_London_line <- merged_modelled_births %>%
+  group_by(Year.x) %>% 
+  summarize(Total_births = sum(SUM_actual_births), 
+            ASFR_births = sum(SUM_ASFRconst_births), 
+            Pop_births = sum(SUM_Popconst_births)) %>% 
+             ggplot() +
+  geom_line(aes(x = Year.x, y = Total_births/1000, group = 1, colour = "Actual births"
+                # text = paste("Zone: ", Inner_factor,
+                #              "<br>Year: ", Year.x,
+                #              "<br>Actual births: ", round(Total_births, digits = 0))
+  ), size = 1) + 
+    geom_line(aes(x = Year.x, y = ASFR_births/1000, group = 1, colour = "Births with 2013 ASFR"
+       # text = paste("Zone: ", Inner_factor,
+       #              "<br>Year: ", Year.x,
+       #              "<br>Modelled births with 2013 ASFR: ", round(ASFR_births, digits = 0))
+  ), size = 1) + 
+   geom_line(aes(x = Year.x, y = Pop_births/1000, group = 1, colour = "Births with 2013 population"
+        # text = paste("Zone: ", Inner_factor,
+        #              "<br>Year: ", Year.x,
+        #              "<br>Modelled births with 2013 Population: ", round(Pop_births_births, digits = 0))
+  ), size = 1) +  
+    theme_gla() +
+  theme(axis.text.x=element_text(color = "black", 
+                                 size=11, family = "Arial"),  #, angle=30, vjust=.8, hjust=0.8
+        axis.text.y=element_text(color = "black", size=11, family = "Arial")) +
+      scale_color_manual(name='Model:', values=c('Actual births'= '#943fab', 
+                                               'Births with 2013 ASFR'='#5ea15d', 
+                                               'Births with 2013 population' = "orange")) +
+  theme(legend.title=element_text(size=14, family = "Arial"),
+        legend.text=element_text(size=11, family = "Arial"),
+        axis.text.x=element_text(color = "black", 
+                                 size=11, family = "Arial"),  #, angle=30, vjust=.8, hjust=0.8
+        axis.text.y=element_text(color = "black", size=11, family = "Arial")) +
+  labs(title= "Modelled births (thousands)", 
+     caption = paste0("Source: ONS, Chart: GLA demography"))
+modelled_births_London_line
+
+ggsave (filename = (paste0(chart_dir, "modelled_births_London_line.png")),
+         plot = modelled_births_London_line,
+         device = "png",
+         dpi=600,
+         width = 9,
+         height = 5.56,
+         units = "in")
+
+# modelled_births_London_line_int <- ggplotly(modelled_births_London_line, tooltip = "text") %>%
+#   style(hoverlabel = list(bgcolor = "white")) %>%
+#   layout(title= list(x = 0.05,
+#                      text = "<b>Modelled births for London (thousands)<b>",
+#                      font=list(size = 15, family = "Arial", color = "black", fontface = "bold")),
+#           legend=list(title=list(text='', font = list(size = 15, family = "Arial", color = "black", fontface = "bold"))),
+#           xaxis = list(title = list(text ='Year',
+#                                    font = list(size = 15, family = "Arial", color = "black",
+#                                                fontface = "bold"))),
+#           yaxis = list(title = list(text ='Births',
+#                                    font = list(size = 15, family = "Arial", color = "black",
+#                                                fontface = "bold")))
+#                  )
+# modelled_births_London_line_int
+
+
+```
+
+
+
+```{r setup6, include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
+
+# Calculating cumulative sums of births since 1993
+
+London_cumbirths_1993_2021 <- London_births_zone_grouped %>%
+  group_by(Inner, age_mother) %>%
+  mutate(cum_sum = cumsum(SUM_births)) %>%
+  data.frame()  
+
+London_cumbirths_A <- London_cumbirths_1993_2021 %>%
+  group_by(Year, Inner) %>% 
+  summarize(SUM_cum_sum = sum(cum_sum)) %>%
+  data.frame()
+
+# Calculating cumulative sums of births since 2013
+
+London_cumbirths_2013_2021 <- London_births_zone_grouped %>%
+  filter(Year > 2012) %>%
+  group_by(Inner, age_mother) %>%
+  mutate(cum_sum = cumsum(SUM_births)) %>%
+  data.frame()  
+
+London_cumbirths_B <- London_cumbirths_2013_2021 %>%
+  group_by(Year, Inner) %>% 
+  summarize(SUM_cum_sum = sum(cum_sum)) %>%
+  data.frame()
+
+
+
+
+```
