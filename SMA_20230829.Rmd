@@ -33,7 +33,7 @@ library(ggrepel)
 
 #devtools::load_all("C:/demogtools/")
 
-data_dir <- 'C:/Families/Data/'
+data_dir <- 'DATA/'
 chart_dir <- 'C:/Families/Charts/'
 #colour_palette <- gla_colour_palette()[c(3,6,2,4,5,7,1)]
 
@@ -50,9 +50,9 @@ chart_dir <- 'C:/Families/Charts/'
 ## SMA FOR REST OF ENGLAND AND WALES OVER TIME using data commissioned by GLA from ONS
 # (this is different from previous file 20230807 where I compared with whole of England, and also different from 20230815 where I didn't use the multiplier of 5 for old and young groups)
 
-# Read in data for all births from 1993 to 2021 in England
+# Read in data for all births from 1993 to 2021 in England and Wales, excluding London
 
-EandW_births <- readRDS("C:/Families/Data/Births_by_SYA_1993-2021/births_calendar_year_age_mother_lad.rds") %>%  
+EandW_births <- readRDS(paste0(data_dir,"births_calendar_year_age_mother_lad.rds")) %>%  
   filter(!grepl('E09000', gss_code)) %>%
   data.frame
 
@@ -84,7 +84,7 @@ EandW_births_grouped <- EandW_births %>%
 #   filter(sex == "female") %>%  
 #   data.frame()
 
-EandW_female_pop <-  readRDS("C:/Families/GLA_population/pop_1991_2021_age_0to85plus.rds") %>% 
+EandW_female_pop <-  readRDS(paste0(data_dir,"pop_1991_2021_age_0to85plus.rds")) %>% 
   filter(grepl('W06000', gss_code) | grepl('E08000', gss_code) |  grepl('E07000', gss_code) |  grepl('E06000', gss_code)) %>%
    filter(year >1992) %>%
    filter(sex == "female") %>%  
@@ -112,19 +112,19 @@ merged_EandW_births_pop_allYears = left_join(EandW_births_grouped, EandW_female_
 # Calculate SMA using new method at end of August
 EandW_SMA_allYears <- merged_EandW_births_pop_allYears %>%
  mutate(Age_mother = as.numeric(age_mother)) %>%
-  mutate(ASFR = SUM_births/SUM_pop) %>%  # calculate fertility rate for each SYA
-  mutate(ASFR_new = case_when(age_mother == 17 ~ ASFR*5, 
-                             age_mother == 42 ~ ASFR*5,
-                             TRUE ~ ASFR)) %>%   # NEW on 29/08
-  mutate(AgeXASFR_new = ASFR_new * Age_mother) %>%
+  mutate(EandW_ASFR = SUM_births/SUM_pop) %>%  # calculate fertility rate for each SYA
+  mutate(EandW_ASFR_new = case_when(age_mother == 17 ~ EandW_ASFR*5, 
+                             age_mother == 42 ~ EandW_ASFR*5,
+                             TRUE ~ EandW_ASFR)) %>%   # NEW on 29/08
+  mutate(EandW_AgeXASFR_new = EandW_ASFR_new * Age_mother) %>%
   group_by(Year) %>%
-  summarize(SUM_ASFR_new = sum(ASFR_new),    # This is equivalent to TFR
-            SUM_AgeXASFR_new = sum(AgeXASFR_new)) %>%
-  mutate(TFR = SUM_ASFR_new) %>% 
-  mutate(SMA = (SUM_AgeXASFR_new / TFR) +0.5) %>%
+  summarize(SUM_EandW_ASFR_new = sum(EandW_ASFR_new),    # This is equivalent to TFR
+            SUM_EandW_AgeXASFR_new = sum(EandW_AgeXASFR_new)) %>%
+  mutate(EandW_TFR = SUM_EandW_ASFR_new) %>% 
+  mutate(EandW_SMA = (SUM_EandW_AgeXASFR_new / EandW_TFR) +0.5) %>%
   data.frame()
  
-# For 2021 in England (excluding London) and Wales, SMA is 30.6 and TFR is 1.56
+# For 2021 in England (excluding London) and Wales, SMA is 30.6 and TFR is 1.56 (or 1.58??)
 
 #-------------------------------------------------------------------------------
 
@@ -132,7 +132,7 @@ EandW_SMA_allYears <- merged_EandW_births_pop_allYears %>%
 
 # Read in data for all births from 1993 to 2021 in England
 
-London_births <- readRDS("C:/Families/Data/Births_by_SYA_1993-2021/births_calendar_year_age_mother_lad.rds") %>%  
+London_births <- readRDS(paste0(data_dir,"births_calendar_year_age_mother_lad.rds")) %>%  
   filter(grepl('E09000', gss_code)) %>%
   data.frame
 
@@ -149,7 +149,7 @@ London_births_grouped <- London_births %>%
 
 # Read in population data (these data are from 1991 and whole UK) for London, only women, and from 1993
 
-London_female_pop <-  readRDS("C:/Families/GLA_population/pop_1991_2021_age_0to85plus.rds") %>%
+London_female_pop <-  readRDS(paste0(data_dir,"pop_1991_2021_age_0to85plus.rds")) %>%
   filter(grepl('E09000', gss_code)) %>% 
   filter(year >1992) %>%
   filter(sex == "female") %>%  
@@ -318,7 +318,6 @@ London_SMA_allYears_zone <- merged_London_births_pop_allYears_zone %>%
 
 # Current geographical variation
 
-
 ```{r fig_London_SMA_1, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
 
 
@@ -461,6 +460,7 @@ SMA_London_EandW_line_int
 
 ```
 
+
 ```{r fig_London_SMA_3, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
 
 
@@ -491,6 +491,55 @@ SMA_London_line_int <- ggplotly(SMA_London_line, tooltip = "text") %>%
                      text = "<b>Standardised Mean Age of mothers, London, 1993 - 2021<b>", 
                      font=list(size = 15, family = "Arial")))
 SMA_London_line_int
+
+```
+
+
+```{r fig_London_EandW_SMA, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+
+## Line plot of SMA for London 1993 - 2021 - for inner and outer London and Rest of England and Wales
+
+SMA_Inner_London <- London_SMA_allYears_zone %>%
+  mutate(year_numeric = as.numeric(Year)) %>%
+  mutate(year_factor = as.factor(Year)) %>%
+  filter(Inner_factor == "Inner") %>%
+  data.frame()
+
+SMA_Outer_London <- London_SMA_allYears_zone %>%
+  mutate(year_numeric = as.numeric(Year)) %>%
+  mutate(year_factor = as.factor(Year)) %>%
+  filter(Inner_factor == "Outer") %>%
+  data.frame()
+
+SMA_EandW <- EandW_SMA_allYears %>%
+  mutate(year_numeric = as.numeric(Year)) %>%
+  mutate(year_factor = as.factor(Year)) %>%
+  data.frame()
+
+SMA_London_zone_EandW_lines <-
+   ggplot() +
+  theme_gla() +
+  geom_line(data = SMA_Inner_London, aes(x = year_factor, y = SMA,  group = 1, color = '#e41a1c' )) +
+    geom_line(data = SMA_Outer_London, aes(x = year_factor, y = SMA,  group = 1, color = '#377eb8') ) +
+   geom_line(data = SMA_EandW, aes(x = year_factor, y = EandW_SMA, group = 1, color = "green")) +
+  scale_x_discrete(name ="Year", breaks=c("1991", "1996", "2001","2006","2011", "2016", "2021")) +
+  scale_color_manual(name="Geographical area:", values=c( '#377eb8','#e41a1c' ,"green"), labels=c("Outer London", "Inner London", "Rest of England and Wales")) +          theme(legend.position = "right") +
+  theme(legend.title=element_text(size=14, family = "Arial"),
+        legend.text=element_text(size=11, family = "Arial"),
+        axis.text.x=element_text(color = "black", 
+                                 size=11, family = "Arial"),  #, angle=30, vjust=.8, hjust=0.8
+        axis.text.y=element_text(color = "black", size=11, family = "Arial")) +      theme(plot.title = element_text(size = 16, hjust = 0.5)) +
+  labs(title= "Standardised Mean Age of mothers, London and Rest of England & Wales, 1993 - 2021", 
+     caption = paste0("Source: ONS, Chart: GLA demography"))
+SMA_London_zone_EandW_lines
+
+ggsave (filename = (paste0(chart_dir, "SMA_London_zone_EandW_lines.png")),
+         plot = SMA_London_zone_EandW_lines,
+         device = "png",
+         dpi=600,
+         width = 9,
+         height = 5.56,
+         units = "in")
 
 ```
 
