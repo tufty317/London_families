@@ -34,7 +34,7 @@ library(rmdformats)
 
 #devtools::load_all("C:/demogtools/")
 
-data_dir <- 'C:/Families/Data/'
+data_dir <- 'DATA/'
 chart_dir <- 'C:/Families/Charts/'
 
 #colour_palette <- gla_colour_palette()[c(3,6,2,4,5,7,1)]
@@ -52,7 +52,8 @@ options(scipen=999)
 
 # Read in data for all births from 1993 to 2021 in England and Wales, excluding London
 
-EandW_births <- readRDS("C:/Families/Data/Births_by_SYA_1993-2021/births_calendar_year_age_mother_lad.rds") %>%   filter(!grepl('E09000', gss_code)) %>%
+EandW_births <- readRDS(paste0(data_dir,"births_calendar_year_age_mother_lad.rds")) %>%   
+                          filter(!grepl('E09000', gss_code)) %>%
   data.frame
 
 # Recode the extreme ages, and group data by year and age of mother 
@@ -69,7 +70,7 @@ EandW_births_grouped <- EandW_births %>%
 # Read in population data (these data are from 1991 and whole UK), selecting for only English women 
 # Start from 1993 to correspond to births data.
 
-EandW_female_pop <-  readRDS("C:/Families/GLA_population/pop_1991_2021_age_0to85plus.rds") %>% 
+EandW_female_pop <-  readRDS(paste0(data_dir,"pop_1991_2021_age_0to85plus.rds")) %>% 
   filter(grepl('W06000', gss_code) | grepl('E08000', gss_code) |  grepl('E07000', gss_code) |  grepl('E06000', gss_code)) %>%
    filter(year >1992) %>%
    filter(sex == "female") %>%  
@@ -133,7 +134,7 @@ EandW_SMA_allYears <- merged_EandW_births_pop_allYears %>%
 
 # Read in data for all births from 1993 to 2021 in England
 
-London_births <- readRDS("C:/Families/Data/Births_by_SYA_1993-2021/births_calendar_year_age_mother_lad.rds") %>%  
+London_births <- readRDS(paste0(data_dir,"births_calendar_year_age_mother_lad.rds")) %>%  
   filter(grepl('E09', gss_code)) %>%
   data.frame
 
@@ -147,7 +148,7 @@ London_births_grouped <- London_births %>%
 
 # Read in population data (data are from 1991 and whole UK) and select for London, only women, and from 1993
 
-London_female_pop <-  readRDS("C:/Families/GLA_population/pop_1991_2021_age_0to85plus.rds") %>%
+London_female_pop <-  readRDS(paste0(data_dir,"pop_1991_2021_age_0to85plus.rds")) %>%
   filter(grepl('E09000', gss_code)) %>% 
   filter(year >1992) %>%
   filter(sex == "female") %>%  
@@ -198,7 +199,7 @@ London_TFR_allYears <- London_ASFR_allYears %>%
 ```
 
 
-```{r fig_births_and_pop, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+```{r fig_births_and_pop_1, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
 
 catcolour2 = c('#ee266d', '#6da7de')
 
@@ -220,8 +221,7 @@ births_and_pop_line <- total_London_births_pop %>%
                                  size=11, family = "Arial"),  #, angle=30, vjust=.8, hjust=0.8
         axis.text.y=element_text(color = "black", size=11, family = "Arial")) +
     scale_linetype_manual(name='London Zone:', values=c('Inner London'="solid", 'Outer London'="dashed")) +
-    scale_x_continuous (limits = c (1990, 2020), breaks = c (1990, 1995, 2000, 2005, 2010, 2015, 2020)) + 
-    scale_y_continuous (limits = c (0, 225)) + 
+    scale_x_continuous (limits = c (1990, 2021), breaks = c (1990, 1995, 2000, 2005, 2010, 2015, 2020)) + 
     scale_color_manual(name='', values=c('Births (thousands)'= '#943fab', 
                                                'Population of potential mothers (tens of thousands)'='#5ea15d')) +
   
@@ -230,12 +230,77 @@ births_and_pop_line <- total_London_births_pop %>%
         axis.text.x=element_text(color = "black", 
                                  size=11, family = "Arial"),  #, angle=30, vjust=.8, hjust=0.8
         axis.text.y=element_text(color = "black", size=11, family = "Arial")) +
-  labs(title= "Births and population", 
+  labs(title= "Births and population, London, 1993 -2021", 
      caption = paste0("Source: ONS, Chart: GLA demography"))
 births_and_pop_line
 
 ggsave (filename = (paste0(chart_dir, "births_and_pop_line.png")),
          plot = births_and_pop_line,
+         device = "png",
+         dpi=600,
+         width = 9,
+         height = 5.56,
+         units = "in")
+
+# modelled_births_line_int <- ggplotly(modelled_births_line, tooltip = "text") %>%
+#   style(hoverlabel = list(bgcolor = "white")) %>%
+#   layout(title= list(x = 0.05,
+#                      text = "<b>Modelled births (thousands)<b>",
+#                      font=list(size = 15, family = "Arial", color = "black", fontface = "bold")),
+#           legend=list(title=list(text='', font = list(size = 15, family = "Arial", color = "black", fontface = "bold"))),
+#           xaxis = list(title = list(text ='Year',
+#                                    font = list(size = 15, family = "Arial", color = "black",
+#                                                fontface = "bold"))),
+#           yaxis = list(title = list(text ='Births',
+#                                    font = list(size = 15, family = "Arial", color = "black",
+#                                                fontface = "bold")))
+#                  )
+# modelled_births_line_int
+
+
+```
+
+```{r fig_births_and_pop_2, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+
+catcolour2 = c('#ee266d', '#6da7de')
+
+births_and_pop_line_ind <- total_London_births_pop %>%
+  mutate(Year = as.numeric(Year)) %>%
+  mutate(indexed_births = (Total_births/first(Total_births))*100) %>% 
+  mutate(indexed_pop = (Total_pop/first(Total_pop))*100) %>% 
+  ggplot() +
+  geom_line(aes(x = Year, y = indexed_births, group = 1, colour = "Indexed Births"
+                # text = paste("Zone: ", Inner_factor,
+                #              "<br>Year: ", Year.x,
+                #              "<br>Actual births: ", round(SUM_actual_births, digits = 0))
+  ), size = 1) + 
+    geom_line(aes(x = Year, y = indexed_pop, group = 1, colour = "Indexed Population of potential mothers"
+       # text = paste("Zone: ", Inner_factor,
+       #              "<br>Year: ", Year.x,
+       #              "<br>Modelled births with 2013 ASFR: ", round(SUM_ASFRconst_births, digits = 0))
+  ), size = 1) + 
+    theme_gla() +
+  theme(axis.text.x=element_text(color = "black", 
+                                 size=11, family = "Arial"),  #, angle=30, vjust=.8, hjust=0.8
+        axis.text.y=element_text(color = "black", size=11, family = "Arial")) +
+    scale_linetype_manual(name='London Zone:', values=c('Inner London'="solid", 'Outer London'="dashed")) +
+    scale_x_continuous (limits = c (1990, 2021), breaks = c (1990, 1995, 2000, 2005, 2010, 2015, 2020)) + 
+    scale_y_continuous(labels = label_number(suffix = "%")) +
+    geom_hline(yintercept=100)+
+    scale_color_manual(name='', values=c('Indexed Births'= '#943fab', 
+                                               'Indexed Population of potential mothers'='#5ea15d')) +
+  
+     theme(legend.title=element_text(size=14, family = "Arial"),
+        legend.text=element_text(size=11, family = "Arial"),
+        axis.text.x=element_text(color = "black", 
+                                 size=11, family = "Arial"),  #, angle=30, vjust=.8, hjust=0.8
+        axis.text.y=element_text(color = "black", size=11, family = "Arial")) +
+  labs(title= "Births and population, 1993 - 2021, indexed to 1993", 
+     caption = paste0("Source: ONS, Chart: GLA demography"))
+births_and_pop_line_ind
+
+ggsave (filename = (paste0(chart_dir, "births_and_pop_line_ind.png")),
+         plot = births_and_pop_line_ind,
          device = "png",
          dpi=600,
          width = 9,
@@ -267,7 +332,7 @@ ggsave (filename = (paste0(chart_dir, "births_and_pop_line.png")),
 
 ## ASFR FOR LONDON ZONES OVER TIME (using data commissioned from ONS)
 
-boroughcodes <- read.csv("C:/Migration/Migration_R/DATA/Domestic/InnerLondon.csv") %>%   
+boroughcodes <- read.csv(paste0(data_dir,"InnerLondon.csv")) %>%   
   data.frame
 
 # Use births data from above for London from 1993 to 2021 but group using  as well this time
