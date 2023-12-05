@@ -419,14 +419,14 @@ SMA_London_EandW_line <- merged_SMA_London_EandW %>%
   mutate(year_numeric = as.numeric(Year)) %>%
   mutate(year_factor = as.factor(Year)) %>%
   ggplot() +
-  geom_line(aes(x = year_factor, y = SMA.y, group = 1, colour = "Rest of E&W", 
+  geom_line(aes(x = year_factor, y = EandW_SMA, group = 1, colour = "Rest of E&W", 
                 text = paste("Area: Rest of England and Wales",
                              "<br>Year: ", year_factor,
-                             "<br>SMA: ", round(SMA.y, digits = 2))   ), size = 1) + 
-  geom_line(aes(x = year_factor, y = SMA.x, group = 1, colour = "London", 
+                             "<br>SMA: ", round(EandW_SMA, digits = 2))   ), size = 1) + 
+  geom_line(aes(x = year_factor, y = SMA, group = 1, colour = "London", 
                 text = paste("Area: London", 
                              "<br>Year: ", year_factor,
-                             "<br>SMA: ", round(SMA.x, digits = 2))   ), size = 1) + 
+                             "<br>SMA: ", round(SMA, digits = 2))   ), size = 1) + 
   theme_gla() +
   theme(axis.text.x=element_text(color = "black", 
                                  size=11, family = "Arial"),  #, angle=30, vjust=.8, hjust=0.8
@@ -519,11 +519,12 @@ SMA_EandW <- EandW_SMA_allYears %>%
 SMA_London_zone_EandW_lines <-
    ggplot() +
   theme_gla() +
-  geom_line(data = SMA_Inner_London, aes(x = year_factor, y = SMA,  group = 1, color = '#e41a1c' )) +
-    geom_line(data = SMA_Outer_London, aes(x = year_factor, y = SMA,  group = 1, color = '#377eb8') ) +
-   geom_line(data = SMA_EandW, aes(x = year_factor, y = EandW_SMA, group = 1, color = "green")) +
+  geom_line(data = SMA_Inner_London, aes(x = year_factor, y = SMA,  group = 1, color = '#d82222' ), size = 2) +
+    geom_line(data = SMA_Outer_London, aes(x = year_factor, y = SMA,  group = 1, color = '#6da7de'), size = 2) +
+   geom_line(data = SMA_EandW, aes(x = year_factor, y = EandW_SMA, group = 1, color = "#5ea15d"), size = 2) +
   scale_x_discrete(name ="Year", breaks=c("1991", "1996", "2001","2006","2011", "2016", "2021")) +
-  scale_color_manual(name="Geographical area:", values=c( '#377eb8','#e41a1c' ,"green"), labels=c("Outer London", "Inner London", "Rest of England and Wales")) +          theme(legend.position = "right") +
+   scale_color_manual(name="", values=c( "#5ea15d", '#6da7de','#d82222'), labels=c("Rest of England and Wales", "Outer London","Inner London")) +
+  theme(legend.position = "right") +
   theme(legend.title=element_text(size=14, family = "Arial"),
         legend.text=element_text(size=11, family = "Arial"),
         axis.text.x=element_text(color = "black", 
@@ -764,7 +765,7 @@ SMA_absChange_scatterplot
 
 ```{r fig_London_SMA_7B, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
 
-## Scatterplot of absolute change in SMA between 1993 and 2021 v. SMA in 1993 for individual London boroughs
+## Scatterplot of TFR in 2021 v. SMA in 2021 for individual London boroughs
 
 catcolour2 = c('#ee266d', '#6da7de')
 
@@ -784,6 +785,14 @@ TFR_vSMA_2021_scatterplot <- London_SMA_allYears_boroughs_zone %>%
   labs(title= "Scatterplot of SMA v. TFR, 2021", 
        caption = paste0("Source: ONS, Chart: GLA demography"))
 TFR_vSMA_2021_scatterplot
+
+ggsave (filename = (paste0(chart_dir, "TFR_vSMA_2021_scatterplot.png")),
+         plot = TFR_vSMA_2021_scatterplot,
+         device = "png",
+         dpi=600,
+         width = 9,
+         height = 5.56,
+         units = "in")
 
 
 ```

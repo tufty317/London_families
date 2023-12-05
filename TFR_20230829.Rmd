@@ -478,12 +478,12 @@ London_ASFR_allYears_Outer <- London_ASFR_allYears_zone %>%
 ASFR_London_zone_EandW_lines <-
    ggplot() +
   theme_gla() +
-  geom_line(data = London_ASFR_allYears_Inner, aes(age_numeric, y = London_zone_ASFR_perK,  group = 1, color = '#e41a1c' )) +
-    geom_line(data = London_ASFR_allYears_Outer, aes(age_numeric, y = London_zone_ASFR_perK,  group = 1, color = '#377eb8') ) +
-   geom_line(data = EandW_ASFR_allYears, aes(age_numeric, y = EandW_ASFR_perK,  group = 1, color = "green")) +
-  theme(plot.title = element_text(size = 16, hjust = 0.5)) +
+  geom_line(data = London_ASFR_allYears_Inner, aes(age_numeric, y = London_zone_ASFR_perK,  group = 1, color = '#d82222'), size = 2) +
+    geom_line(data = London_ASFR_allYears_Outer, aes(age_numeric, y = London_zone_ASFR_perK,  group = 1, color = '#6da7de'), size = 2) +
+   geom_line(data = EandW_ASFR_allYears, aes(age_numeric, y = EandW_ASFR_perK,  group = 1, color = "#5ea15d"), size = 2) +
+   theme(plot.title = element_text(size = 16, hjust = 0.5)) +
   theme(legend.position = "right") +
-   scale_color_manual(name="Legend:", values=c( '#377eb8','#e41a1c' ,"green"), labels=c("Outer London", "Inner London", "Rest of England and Wales")) +
+   scale_color_manual(name="Legend:", values=c( "#5ea15d", '#6da7de','#d82222'), labels=c("Rest of England and Wales", "Outer London","Inner London")) +
    labs(title= "Age-specific fertility rate, London zone and Rest of England and Wales, 2021",
        caption = paste0("Source: ONS, Chart: GLA demography"))
 ASFR_London_zone_EandW_lines
@@ -639,12 +639,13 @@ London_TFR_allYears_Outer <- London_TFR_allYears_zone %>%
 TFR_London_zone_EandW_lines <-
    ggplot() +
   theme_gla() +
-  geom_line(data = London_TFR_allYears_Inner, aes(Year, y = London_zone_TFR,  group = 1, color = '#e41a1c' )) +
-    geom_line(data = London_TFR_allYears_Outer, aes(Year, y = London_zone_TFR,  group = 1, color = '#377eb8') ) +
-   geom_line(data = EandW_TFR_allYears, aes(Year, y = EandW_TFR,  group = 1, color = "green")) +
+  geom_line(data = London_TFR_allYears_Inner, aes(Year, y = London_zone_TFR,  group = 1, color = '#d82222' ), size = 2) +
+    geom_line(data = London_TFR_allYears_Outer, aes(Year, y = London_zone_TFR,  group = 1, color = '#6da7de'), size = 2 ) +
+   geom_line(data = EandW_TFR_allYears, aes(Year, y = EandW_TFR,  group = 1, color = "#5ea15d"), size = 2) +
   ylim(1, 2.4) +
   scale_x_discrete(name ="Year", breaks=c("1991", "1996", "2001","2006","2011", "2016", "2021")) +
-  scale_color_manual(name="Geographical area:", values=c( '#377eb8','#e41a1c' ,"green"), labels=c("Outer London", "Inner London", "Rest of England and Wales")) +          theme(legend.position = "right") +
+   scale_color_manual(name="", values=c( "#5ea15d", '#6da7de','#d82222'), labels=c("Rest of England and Wales", "Outer London","Inner London")) +
+  theme(legend.position = "right") +
   theme(legend.title=element_text(size=14, family = "Arial"),
         legend.text=element_text(size=11, family = "Arial"),
         axis.text.x=element_text(color = "black", 
@@ -1175,7 +1176,7 @@ TFR_2021_boroughs_geog <- London_TFR_allYears_boroughs %>%
 #catgreen5 = c("#edf8e9", "#bae4b3", "#74c476", "#31a354", "#006d2c")
 
 
-catgreen5 = c('#3f633e', '#578555', '#7aa677', '#a6c6a2', '#d8e4d6')
+catgreen5 = rev(c('#3f633e', '#578555', '#7aa677', '#a6c6a2', '#d8e4d6'))
 #(made on 5th Sep from values on page 16 of CIU guidelines 3f633e, 5ea15d, d8e4d6)
 
 catgreen5B = c('#212b20', '#3d583b', '#638760', '#95b792', '#d8e4d6')
