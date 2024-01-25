@@ -263,22 +263,32 @@ ggplotly(ASFR_selected_lines_SYA, tooltip = "text") %>%
 catgreen6 = rev(c('#212b20', '#374f35', '#527450', '#759a72', '#a1c09e', '#d8e4d6'))
 #(made on 19th Sep from values on page 14 of CIU guidelines 212b20, 5ea15d, d8e4d6)
 
-ASFR_3selected_lines_SYA <- London_ASFR_allYears %>%
+
+catgreen3 = rev(c('#212b20', '#527450', '#a1c09e' ))
+
+London_ASFR_3selected_years <- London_ASFR_allYears %>%
   filter(Year %in% c("2000", "2010", "2020")) %>%
  # mutate(year = as.numeric(Year)) %>%
   mutate(age_numeric = as.numeric(age_mother)) %>%
+  mutate(label = if_else(age_numeric == max(age_numeric), 
+                         as.character(Year), NA_character_)) %>%
+  data.frame()
+  
+ASFR_3selected_lines_SYA <- London_ASFR_3selected_years %>%
   ggplot(aes(x = age_numeric, y = London_ASFR_perK, group = Year, color = Year, text = paste("Year  :", Year,
                                                            "<br>Age : ", age_numeric,
                                                           "<br>ASFR: ", round(London_ASFR_perK, digits = 3))
-             )) +
+             ), size = 2) +
+  geom_label_repel(aes(x = age_numeric, y = London_ASFR_perK, label = label), nudge_x = 2) +
   theme_gla() +
-  theme(legend.position = "right") +
+ # theme(legend.position = "right") +
   geom_line(size=1) + 
-  scale_colour_manual(values = catgreen6) + 
-  ylim(0, 150) +
+  scale_colour_manual(values = catgreen3, guide="none") + 
+  scale_y_continuous(limits = c(0, 120)) +
+#  ylim(0, 125) +
   labs(title= "Age specific fertility rates, London, 2000 - 2020", 
        caption = paste0("Source: ONS, Chart: GLA demography"))
-ASFR_selected_lines_SYA
+ASFR_3selected_lines_SYA
 
 
 ggsave (filename = (paste0(chart_dir, "ASFR_London_SYA_3selected_lines.png")),
@@ -421,19 +431,19 @@ ASFR_London_line_group <- ASFR_London_calc_group %>%
   scale_color_discrete(guide = FALSE) +
   geom_line() +
   ylim(0, 112) +
-  geom_label_repel(aes(label = label), nudge_x = 0.2)+
+  geom_label_repel(aes(label = label), nudge_x = 1)+
   labs(title= "Age specific fertility rates in London by age-category, 1993 - 2021", 
        caption = paste0("Source: ONS, Chart: GLA demography"))
 ASFR_London_line_group 
 
-# ggsave (filename = (paste0(chart_dir, "ASFR_London_ageGroup_line.png")),
-#          plot = ASFR_London_line_group,
-#          device = "png",
-#          dpi=600,
-#          width = 9,
-#          height = 5.56,
-#          units = "in")
-# 
+ggsave (filename = (paste0(chart_dir, "ASFR_London_ageGroup_line.png")),
+         plot = ASFR_London_line_group,
+         device = "png",
+         dpi=600,
+         width = 9,
+         height = 5.56,
+         units = "in")
+
 # ggplotly(ASFR_London_line_group, tooltip = "text") %>%
 #     style(hoverlabel = list(bgcolor = "white")) %>%
 #     layout(title= list(x = 0.05,

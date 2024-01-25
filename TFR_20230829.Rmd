@@ -453,9 +453,11 @@ ASFR_London_line_zone_int
 ## Line plot of ASFR for inner and outer London and rest of England and Wales
 
 EandW_ASFR_allYears <- EandW_ASFR_allYears %>%
-  mutate(Region = "Rest of EandW") %>%
+  mutate(Region = "Rest of England and Wales") %>%
   filter(Year == "2021") %>%
   mutate(age_numeric = as.numeric(age_mother)) %>%
+  mutate(label = if_else(age_numeric == max(age_numeric), 
+                         as.character(Region), NA_character_)) %>%
   data.frame()
 
 London_ASFR_allYears_Inner <- London_ASFR_allYears_zone %>%
@@ -463,6 +465,8 @@ London_ASFR_allYears_Inner <- London_ASFR_allYears_zone %>%
   filter(Year == "2021") %>%
   filter(Inner == "1") %>%
   mutate(Region = "Inner London") %>%
+    mutate(label = if_else(age_numeric == max(age_numeric), 
+                         as.character(Region), NA_character_)) %>%
   select (-c(Inner)) %>%
   data.frame()
 
@@ -471,6 +475,8 @@ London_ASFR_allYears_Outer <- London_ASFR_allYears_zone %>%
   filter(Year == "2021") %>%
   filter(Inner == "0") %>%
   mutate(Region = "Outer London") %>%
+  mutate(label = if_else(age_numeric == max(age_numeric), 
+                         as.character(Region), NA_character_)) %>%
   select (-c(Inner)) %>%
   data.frame()
 
@@ -479,11 +485,15 @@ ASFR_London_zone_EandW_lines <-
    ggplot() +
   theme_gla() +
   geom_line(data = London_ASFR_allYears_Inner, aes(age_numeric, y = London_zone_ASFR_perK,  group = 1, color = '#d82222'), size = 2) +
+    geom_label_repel(data = London_ASFR_allYears_Inner, aes(age_numeric, y = London_zone_ASFR_perK, label = label), nudge_x = 5, color = '#d82222')+
     geom_line(data = London_ASFR_allYears_Outer, aes(age_numeric, y = London_zone_ASFR_perK,  group = 1, color = '#6da7de'), size = 2) +
+    geom_label_repel(data = London_ASFR_allYears_Outer, aes(age_numeric, y = London_zone_ASFR_perK, label = label), nudge_x = 5, color = '#6da7de')+
    geom_line(data = EandW_ASFR_allYears, aes(age_numeric, y = EandW_ASFR_perK,  group = 1, color = "#5ea15d"), size = 2) +
+   geom_label_repel(data = EandW_ASFR_allYears, aes(age_numeric, y = EandW_ASFR_perK, label = label), nudge_x = 5, nudge_y = -5, color = "#5ea15d")+
    theme(plot.title = element_text(size = 16, hjust = 0.5)) +
   theme(legend.position = "right") +
-   scale_color_manual(name="Legend:", values=c( "#5ea15d", '#6da7de','#d82222'), labels=c("Rest of England and Wales", "Outer London","Inner London")) +
+  scale_y_continuous(limits = c(0, 120)) +
+   scale_color_manual(name="", values=c( "#5ea15d", '#6da7de','#d82222'), guide="none") +
    labs(title= "Age-specific fertility rate, London zone and Rest of England and Wales, 2021",
        caption = paste0("Source: ONS, Chart: GLA demography"))
 ASFR_London_zone_EandW_lines
@@ -627,24 +637,41 @@ TFR_London_EandW_line_int
 London_TFR_allYears_Inner <- London_TFR_allYears_zone %>%
   filter(Inner == "1") %>%
   mutate(Region = "Inner London") %>%
+    mutate(Year = as.numeric(Year)) %>%
+   mutate(label = if_else(Year == max(Year), 
+                         as.character(Region), NA_character_)) %>%
   select (-c(Inner)) %>%
   data.frame()
 
 London_TFR_allYears_Outer <- London_TFR_allYears_zone %>%
   filter(Inner == "0") %>%
   mutate(Region = "Outer London") %>%
+    mutate(Year = as.numeric(Year)) %>%
+  mutate(label = if_else(Year == max(Year), 
+                         as.character(Region), NA_character_)) %>%
   select (-c(Inner)) %>%
+  data.frame()
+
+EandW_TFR_allYears_new <- EandW_TFR_allYears %>%
+  mutate(Region = "Rest of England and Wales") %>%
+    mutate(Year = as.numeric(Year)) %>%
+  mutate(label = if_else(Year == max(Year), 
+                         as.character(Region), NA_character_)) %>%
   data.frame()
 
 TFR_London_zone_EandW_lines <-
    ggplot() +
   theme_gla() +
   geom_line(data = London_TFR_allYears_Inner, aes(Year, y = London_zone_TFR,  group = 1, color = '#d82222' ), size = 2) +
+      geom_label_repel(data = London_TFR_allYears_Inner, aes(Year, y = London_zone_TFR, label = label), nudge_x = 3, color = '#d82222')+
     geom_line(data = London_TFR_allYears_Outer, aes(Year, y = London_zone_TFR,  group = 1, color = '#6da7de'), size = 2 ) +
-   geom_line(data = EandW_TFR_allYears, aes(Year, y = EandW_TFR,  group = 1, color = "#5ea15d"), size = 2) +
-  ylim(1, 2.4) +
-  scale_x_discrete(name ="Year", breaks=c("1991", "1996", "2001","2006","2011", "2016", "2021")) +
-   scale_color_manual(name="", values=c( "#5ea15d", '#6da7de','#d82222'), labels=c("Rest of England and Wales", "Outer London","Inner London")) +
+      geom_label_repel(data = London_TFR_allYears_Outer, aes(Year, y = London_zone_TFR, label = label), nudge_x = 3, color = '#6da7de')+
+   geom_line(data = EandW_TFR_allYears_new, aes(Year, y = EandW_TFR,  group = 1, color = "#5ea15d"), size = 2) +
+      geom_label_repel(data = EandW_TFR_allYears_new, aes(Year, y = EandW_TFR, label = label), nudge_x = 1, nudge_y = -0.1, color = "#5ea15d")+
+#  ylim(1.2, 2.4) +
+  #    geom_hline(yintercept=1)+
+   scale_x_continuous(limits = c (1992, 2025), breaks = c(1993, 1996, 1999, 2002, 2005, 2008, 2011, 2014, 2017, 2021)) +  
+   scale_color_manual(name="", values=c( "#5ea15d", '#6da7de','#d82222'), guide="none") +
   theme(legend.position = "right") +
   theme(legend.title=element_text(size=14, family = "Arial"),
         legend.text=element_text(size=11, family = "Arial"),
@@ -1046,8 +1073,11 @@ SMA_absChange_scatterplot1 <- London_SMA_allYears_boroughs_zone %>%
   filter(year_factor == "2021") %>% 
   ggplot(aes(x = AbsChange_SMA, y = AbsChange_TFR, color=Inner_factor)) +
   geom_point(shape=18,  size = 4) +
+  geom_hline(yintercept = 0) +
+  geom_vline(xintercept = 0) +
   scale_color_manual(name='London Zone:', values = catcolour2) +
   theme_gla(x_axis_title = TRUE,  y_axis_title = TRUE, free_y_facets = TRUE)+
+  theme(legend.position = "right") +
   labs(x = "Change in SMA value between 1993 and 2021", 
        y = "Change in TFR value between 1993 and 2021") +
   geom_text_repel(aes(label = gss_name), size = 4) +
@@ -1075,7 +1105,6 @@ ggsave (filename = (paste0(chart_dir, "SMA_London_change_1993_scatterplot.png"))
 
 catcolour2 = c('#ee266d', '#6da7de')
 
-library(ggrepel)
 
 TFR_vSMA_scatterplot <- London_SMA_allYears_boroughs_zone %>%
   filter(gss_name != "City of London") %>%
@@ -1086,7 +1115,7 @@ TFR_vSMA_scatterplot <- London_SMA_allYears_boroughs_zone %>%
   geom_point(shape=18,  size = 4) +
   scale_color_manual(name='London Zone:', values = catcolour2) +
   theme_gla(x_axis_title = TRUE,  y_axis_title = TRUE, free_y_facets = TRUE)+
-  labs(x = "SMA value in 2021", 
+  theme(legend.position = "right") + labs(x = "SMA value in 2021", 
        y = "TFR value in 2021") +
   geom_text_repel(aes(label = gss_name), size = 4) +
   labs(title= "Scatterplot of TFR v. SMA for London boroughs, 2021", 
@@ -1129,8 +1158,11 @@ SMA_absChange_scatterplot2 <- London_SMA_allYears_boroughs_zone %>%
   filter(year_factor == "2021") %>% 
   ggplot(aes(x = AbsChange_SMA, y = AbsChange_TFR, color=Inner_factor)) +
   geom_point(shape=18,  size = 4) +
+  geom_hline(yintercept = 0) +
+  geom_vline(xintercept = 0) +
   scale_color_manual(name='London Zone:', values = catcolour2) +
   theme_gla(x_axis_title = TRUE,  y_axis_title = TRUE, free_y_facets = TRUE)+
+  theme(legend.position = "right") + 
   labs(x = "Change in SMA value between 2011 and 2021", 
        y = "Change in TFR value between 2011 and 2021") +
   geom_text_repel(aes(label = gss_name), size = 4) +
@@ -1165,10 +1197,10 @@ TFR_2021_boroughs_geog <- London_TFR_allYears_boroughs %>%
   left_join(borough_boundaries_2021, by=c("gss_code"="LAD21CD"))%>%
   mutate(TFRCat = cut(TFR, breaks = c(0.50, 1.00, 1.20, 1.40, 1.60, 2.00),
                       right=FALSE,
-                      labels = c("0.5 - 0.99",
-                                 "1.0 - 1.19",
-                                 "1.2 - 1.39",
-                                 "1.4 - 1.59",
+                      labels = c("0.5 -",
+                                 "1.0 -",
+                                 "1.2 -",
+                                 "1.4 -",
                                  "1.6+"))) %>%
   data.frame()
     
@@ -1208,10 +1240,15 @@ TFR_2021_map <- TFR_2021_boroughs_geog %>%
         axis.text.y = element_blank(), 
         axis.ticks.x = element_blank(), 
         axis.ticks.y = element_blank())+
+    theme(legend.text = element_text(size=16)) +
+  theme(legend.title = element_text(size=16)) +
+  theme(legend.key.height= unit(1, 'cm'),
+        legend.key.width= unit(0.7, 'cm')) +
   scale_fill_manual(values = catgreen5) + 
   labs(title= "Total Fertility Rate, London, 2021", 
        caption = paste0("Source: ONS, Chart: GLA demography")) +
          labs(fill = "TFR")
+TFR_2021_map
 
 ggsave (filename = (paste0(chart_dir, "TFR_2021_map.png")),
          plot = TFR_2021_map,
@@ -1222,21 +1259,21 @@ ggsave (filename = (paste0(chart_dir, "TFR_2021_map.png")),
          units = "in")
 
 # Interactive map using ggplotly
-TFR_2021_map_int <- ggplotly(TFR_2021_map, tooltip = "text") %>%
-    layout(title= list(x = 0.05,
-         text = "<b>Total Fertility Rate, London, 2021<b>", 
-         font=list(size = 15, family = "Arial")),
-         font=list(size = 14, family = "Arial", color = "black", fontface = "bold"),
-         legend=list(orientation = "v", xanchor = "center", x = 1.1, y = 0.3,
-                     title=list(text='TFR',
-                                font = list(family = "Arial", size = 14)),  
-                     font = list(family = "Arial", size = 14))) %>%  
- # add_annotations(text="", showarrow=FALSE, legendtitle=TRUE) %>%
-  layout(annotations = list(x = 0.05, y = -0.05, text = "Source: ONS, Chart: GLA demography", 
-                            showarrow = F, xref='paper', yref='paper', 
-                            font=list(size=14, family = "Arial")), 
-         margin = list(l = 0,r = 0,  b =40,  t = 70,  pad = 4)) 
-
-TFR_2021_map_int
+# TFR_2021_map_int <- ggplotly(TFR_2021_map, tooltip = "text") %>%
+#     layout(title= list(x = 0.05,
+#          text = "<b>Total Fertility Rate, London, 2021<b>", 
+#          font=list(size = 15, family = "Arial")),
+#          font=list(size = 14, family = "Arial", color = "black", fontface = "bold"),
+#          legend=list(orientation = "v", xanchor = "center", x = 1.1, y = 0.3,
+#                      title=list(text='TFR',
+#                                 font = list(family = "Arial", size = 14)),  
+#                      font = list(family = "Arial", size = 14))) %>%  
+#  # add_annotations(text="", showarrow=FALSE, legendtitle=TRUE) %>%
+#   layout(annotations = list(x = 0.05, y = -0.05, text = "Source: ONS, Chart: GLA demography", 
+#                             showarrow = F, xref='paper', yref='paper', 
+#                             font=list(size=14, family = "Arial")), 
+#          margin = list(l = 0,r = 0,  b =40,  t = 70,  pad = 4)) 
+# 
+# TFR_2021_map_int
 
 ```

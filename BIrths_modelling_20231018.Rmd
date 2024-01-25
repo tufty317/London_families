@@ -31,6 +31,7 @@ library(RColorBrewer)
 library(htmltools)
 library(prettydoc)
 library(rmdformats)
+library(ggrepel)
 
 #devtools::load_all("C:/demogtools/")
 
@@ -262,36 +263,45 @@ ggsave (filename = (paste0(chart_dir, "births_and_pop_line.png")),
 
 ```{r fig_births_and_pop_2, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
 
-catcolour2 = c('#ee266d', '#6da7de')
-
-births_and_pop_line_ind <- total_London_births_pop %>%
+total_London_births_ind <- total_London_births_pop %>%
   mutate(Year = as.numeric(Year)) %>%
   mutate(indexed_births = (Total_births/first(Total_births))*100) %>% 
+  mutate(Variable = "Births") %>%
+  arrange(Year) %>%
+  mutate(label = if_else(Year == max(Year), 
+                         as.character(Variable), NA_character_)) %>%
+  data.frame()
+  
+total_London_pop_ind <- total_London_births_pop %>%
+  mutate(Year = as.numeric(Year)) %>%
   mutate(indexed_pop = (Total_pop/first(Total_pop))*100) %>% 
+ mutate(Variable = "Potential mothers") %>%
+  arrange(Year) %>%
+  mutate(label = if_else(Year == max(Year), 
+                         as.character(Variable), NA_character_)) %>%
+  data.frame()
+  
+births_and_pop_line_ind <- 
   ggplot() +
-  geom_line(aes(x = Year, y = indexed_births, group = 1, colour = "Indexed Births"
-                # text = paste("Zone: ", Inner_factor,
-                #              "<br>Year: ", Year.x,
-                #              "<br>Actual births: ", round(SUM_actual_births, digits = 0))
-  ), size = 1) + 
-    geom_line(aes(x = Year, y = indexed_pop, group = 1, colour = "Indexed Population of potential mothers"
-       # text = paste("Zone: ", Inner_factor,
-       #              "<br>Year: ", Year.x,
-       #              "<br>Modelled births with 2013 ASFR: ", round(SUM_ASFRconst_births, digits = 0))
-  ), size = 1) + 
+  geom_line(data = total_London_births_ind, aes(x = Year, y = indexed_births, group = 1, colour = '#943fab' 
+             ), size = 1) + 
+    geom_label_repel(data = total_London_births_ind, aes(x = Year, y = indexed_births, label = label), 
+                      nudge_x = -0.5, nudge_y = -1, color = '#943fab')+
+    geom_line(data = total_London_pop_ind, aes(x = Year, y = indexed_pop, group = 1,  color = '#5ea15d'
+      ), size = 1) + 
+     geom_label_repel(data = total_London_pop_ind, aes(x = Year, y = indexed_pop, label = label), 
+                      nudge_x = -0.5, nudge_y = -1, color = '#5ea15d')+
     theme_gla() +
   theme(axis.text.x=element_text(color = "black", 
                                  size=11, family = "Arial"),  #, angle=30, vjust=.8, hjust=0.8
         axis.text.y=element_text(color = "black", size=11, family = "Arial")) +
     scale_linetype_manual(name='London Zone:', values=c('Inner London'="solid", 'Outer London'="dashed")) +
-    scale_x_continuous (limits = c (1990, 2021), breaks = c (1990, 1995, 2000, 2005, 2010, 2015, 2020)) + 
-    scale_y_continuous(labels = label_number(suffix = "%")) +
+    scale_x_continuous(limits = c (1993, 2022), breaks = c(1993, 1996, 1999, 2002, 2005, 2008, 2011, 2014, 2017, 2021)) +     
+  scale_y_continuous(labels = label_number(suffix = "%")) +
     geom_hline(yintercept=100)+
-    scale_color_manual(name='', values=c('Indexed Births'= '#943fab', 
-                                               'Indexed Population of potential mothers'='#5ea15d')) +
-  
+    scale_color_manual(values=c('#5ea15d', '#943fab'), guide="none") +
      theme(legend.title=element_text(size=14, family = "Arial"),
-        legend.text=element_text(size=11, family = "Arial"),
+       legend.text=element_text(size=11, family = "Arial"),
         axis.text.x=element_text(color = "black", 
                                  size=11, family = "Arial"),  #, angle=30, vjust=.8, hjust=0.8
         axis.text.y=element_text(color = "black", size=11, family = "Arial")) +
@@ -321,6 +331,7 @@ ggsave (filename = (paste0(chart_dir, "births_and_pop_line_ind.png")),
 #                                                fontface = "bold")))
 #                  )
 # modelled_births_line_int
+
 
 
 ```
