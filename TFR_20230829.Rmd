@@ -1060,7 +1060,7 @@ catcolour2 = c('#ee266d', '#6da7de')
 library(ggrepel)
 
 SMA_absChange_scatterplot1 <- London_SMA_allYears_boroughs_zone %>%
-  filter(gss_name != "City of London") %>%
+    filter(gss_name != "City of London") %>%
   mutate(year_numeric = as.numeric(Year)) %>%
   mutate(year_factor = as.factor(Year)) %>%
   group_by(gss_code, gss_name, Inner_factor) %>% 
@@ -1072,10 +1072,13 @@ SMA_absChange_scatterplot1 <- London_SMA_allYears_boroughs_zone %>%
   mutate(AbsChange_TFR = (lastTFR - firstTFR)) %>%
   filter(year_factor == "2021") %>% 
   ggplot(aes(x = AbsChange_SMA, y = AbsChange_TFR, color=Inner_factor)) +
+  geom_smooth(method='lm', se = FALSE, linewidth=0.5) +  #linetype="dashed"
   geom_point(shape=18,  size = 4) +
   geom_hline(yintercept = 0) +
   geom_vline(xintercept = 0) +
   scale_color_manual(name='London Zone:', values = catcolour2) +
+  scale_y_continuous(limits = c(-1.2, 0.3), breaks =c(-1.2, -0.9, -0.6, -0.3, 0, 0.3)) +  
+  scale_x_continuous(limits = c(0, 6), breaks =c(0, 2, 4, 6)) +  
   theme_gla(x_axis_title = TRUE,  y_axis_title = TRUE, free_y_facets = TRUE)+
   theme(legend.position = "right") +
   labs(x = "Change in SMA value between 1993 and 2021", 
@@ -1112,8 +1115,11 @@ TFR_vSMA_scatterplot <- London_SMA_allYears_boroughs_zone %>%
   mutate(year_factor = as.factor(Year)) %>%
   filter(year_factor == "2021") %>% 
   ggplot(aes(x = SMA, y = TFR, color=Inner_factor)) +
+  geom_smooth(method='lm', se = FALSE, linewidth=0.5) +  #linetype="dashed"
   geom_point(shape=18,  size = 4) +
   scale_color_manual(name='London Zone:', values = catcolour2) +
+  scale_y_continuous(limits = c(1, 2), breaks =c(1, 1.2, 1.4, 1.6, 1.8, 2.0)) +  
+  scale_x_continuous(limits = c(29, 35), breaks =c(29, 31, 33, 35)) +  
   theme_gla(x_axis_title = TRUE,  y_axis_title = TRUE, free_y_facets = TRUE)+
   theme(legend.position = "right") + labs(x = "SMA value in 2021", 
        y = "TFR value in 2021") +
