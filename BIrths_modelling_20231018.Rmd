@@ -337,6 +337,117 @@ ggsave (filename = (paste0(chart_dir, "births_and_pop_line_ind.png")),
 ```
 
 
+```{r fig_births_by_zone_abs, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+
+
+boroughcodes <- read.csv(paste0(data_dir,"InnerLondon.csv")) %>%   
+  data.frame
+
+# Plot births by zone
+
+London_births_zone_grouped <- London_births %>%
+  filter(age_mother !="total") %>%
+  left_join(boroughcodes, by=c("gss_code"="BoroughCode"))%>% 
+  mutate(Inner_factor= recode(Inner, "1"="Inner", "0"="Outer")) %>%
+  mutate(age_mother = recode(age_mother, 'Under 20'='17', '40 and over'='42')) %>% 
+  mutate(Year = as.character(year)) %>%
+  group_by(Year, Inner, Inner_factor) %>% 
+  summarize(SUM_births = sum(value)) %>%
+  data.frame()
+
+
+catcolour2 = c('#ee266d', '#6da7de')
+
+births_by_zone_abs_line <- London_births_zone_grouped  %>%
+  mutate(Year = as.numeric(Year)) %>%
+  ggplot() +
+ geom_line(aes(x = Year, y = SUM_births/1000, group = Inner_factor, colour = Inner_factor), size = 1) + 
+       theme_gla() +
+  theme(axis.text.x=element_text(color = "black", 
+                                 size=11, family = "Arial"),  #, angle=30, vjust=.8, hjust=0.8
+        axis.text.y=element_text(color = "black", size=11, family = "Arial")) +
+    scale_x_continuous (limits = c (1990, 2021), breaks = c (1990, 1995, 2000, 2005, 2010, 2015, 2020)) + 
+      theme(legend.title=element_text(size=14, family = "Arial"),
+        legend.text=element_text(size=11, family = "Arial"),
+        axis.text.x=element_text(color = "black", 
+                                 size=11, family = "Arial"),  #, angle=30, vjust=.8, hjust=0.8
+        axis.text.y=element_text(color = "black", size=11, family = "Arial")) +
+    scale_y_continuous(limits = c(0, NA)) +
+    scale_colour_manual(values = catcolour2, guide="none") + 
+  labs(title= "Births by zone, London, 1993 - 2021", 
+     caption = paste0("Source: ONS, Chart: GLA demography"))
+births_by_zone_abs_line
+
+ggsave (filename = (paste0(chart_dir, "births_by_zone_abs_line.png")),
+         plot = births_by_zone_abs_line,
+         device = "png",
+         dpi=600,
+         width = 9,
+         height = 5.56,
+         units = "in")
+
+
+
+
+```
+
+
+```{r fig_births_by_zone_ind, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+
+# Plot indexed births by zone
+
+London_births_zone_grouped <- London_births %>%
+  filter(age_mother !="total") %>%
+  left_join(boroughcodes, by=c("gss_code"="BoroughCode"))%>% 
+  mutate(Inner_factor= recode(Inner, "1"="Inner", "0"="Outer")) %>%
+  mutate(age_mother = recode(age_mother, 'Under 20'='17', '40 and over'='42')) %>% 
+  mutate(Year = as.character(year)) %>%
+  group_by(Year, Inner, Inner_factor) %>% 
+  summarize(SUM_births = sum(value)) %>%
+  data.frame()
+
+London_births_zone_grouped_ind <- London_births_zone_grouped  %>%
+  mutate(Year = as.numeric(Year)) %>%
+  arrange(Year) %>%  
+  group_by(Inner_factor) %>% 
+  mutate(indexed_births = (SUM_births/first(SUM_births))*100) %>% 
+  mutate(label = if_else(Year == max(Year), 
+                         as.character(Inner_factor), NA_character_)) %>%
+  data.frame()
+
+births_by_zone_ind_line <- London_births_zone_grouped_ind  %>%
+  ggplot() +
+ geom_line(aes(x = Year, y = indexed_births, group = Inner_factor, colour = Inner_factor), size = 1) + 
+       theme_gla() +
+  theme(axis.text.x=element_text(color = "black", 
+                                 size=11, family = "Arial"),  #, angle=30, vjust=.8, hjust=0.8
+        axis.text.y=element_text(color = "black", size=11, family = "Arial")) +
+    scale_x_continuous (limits = c (1990, 2023), breaks = c (1990, 1995, 2000, 2005, 2010, 2015, 2021)) + 
+      theme(legend.title=element_text(size=14, family = "Arial"),
+        legend.text=element_text(size=11, family = "Arial"),
+        axis.text.x=element_text(color = "black", 
+                                 size=11, family = "Arial"),  #, angle=30, vjust=.8, hjust=0.8
+        axis.text.y=element_text(color = "black", size=11, family = "Arial")) +
+    geom_label_repel(aes(x = Year, y = indexed_births, group = Inner_factor, colour = Inner_factor, label = label),nudge_x = 1) +
+    scale_y_continuous(labels = label_number(suffix = "%")) +
+    geom_hline(yintercept=100)+
+    scale_colour_manual(values = catcolour2, guide="none") + 
+  labs(title= "Indexed births by zone, London, 1993 - 2021", 
+     caption = paste0("Source: ONS, Chart: GLA demography"))
+births_by_zone_ind_line
+
+ggsave (filename = (paste0(chart_dir, "births_by_zone_ind_line.png")),
+         plot = births_by_zone_ind_line,
+         device = "png",
+         dpi=600,
+         width = 9,
+         height = 5.56,
+         units = "in")
+
+
+
+
+```
 
 
 ```{r setup4, include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
