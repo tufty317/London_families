@@ -541,6 +541,7 @@ SMA_London_zone_EandW_lines <-
      geom_label_repel(data = SMA_EandW, aes(x = year_numeric, y = EandW_SMA, label = label), nudge_x = -1.0, nudge_y = -0.8, color = "#5ea15d")+
      ylim(25, NA) +
       scale_x_continuous(limits = c (1992, 2023), breaks = c(1993, 1996, 1999, 2002, 2005, 2008, 2011, 2014, 2017, 2021)) +
+      scale_y_continuous(limits = c (27.5, NA)) +
 #  scale_x_discrete(name ="Year", breaks=c("1991", "1996", "2001","2006","2011", "2016", "2021")) +
    scale_color_manual(name="", values=c( "#5ea15d", '#6da7de','#d82222'), guide="none") +
   theme(legend.position = "right") +

@@ -493,6 +493,7 @@ ASFR_London_zone_EandW_lines <-
    theme(plot.title = element_text(size = 16, hjust = 0.5)) +
   theme(legend.position = "right") +
   scale_y_continuous(limits = c(0, 120)) +
+  scale_x_continuous(breaks = c(20, 25, 30, 35, 40)) +  
    scale_color_manual(name="", values=c( "#5ea15d", '#6da7de','#d82222'), guide="none") +
    labs(title= "Age-specific fertility rate, London zone and Rest of England and Wales, 2021",
        caption = paste0("Source: ONS, Chart: GLA demography"))
@@ -1088,7 +1089,7 @@ SMA_absChange_scatterplot1 <- London_SMA_allYears_boroughs_zone %>%
        caption = paste0("Source: ONS, Chart: GLA demography"))
 SMA_absChange_scatterplot1
 
-ggsave (filename = (paste0(chart_dir, "SMA_London_change_1993_scatterplot.png")),
+ggsave (filename = (paste0(chart_dir, "SMA_London_change_1993_scatterplot_withtrendline.png")),
          plot = SMA_absChange_scatterplot1,
          device = "png",
          dpi=600,
@@ -1128,7 +1129,7 @@ TFR_vSMA_scatterplot <- London_SMA_allYears_boroughs_zone %>%
        caption = paste0("Source: ONS, Chart: GLA demography"))
 TFR_vSMA_scatterplot
 
-ggsave (filename = (paste0(chart_dir, "TFR_vSMA_scatterplot.png")),
+ggsave (filename = (paste0(chart_dir, "TFR_vSMA_scatterplot_withtrendline.png")),
          plot = TFR_vSMA_scatterplot,
          device = "png",
          dpi=600,
