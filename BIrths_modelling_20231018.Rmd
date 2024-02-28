@@ -45,7 +45,6 @@ options(scipen=999)
 
 ```
 
-
 ```{r setup2, include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
 
 ## ASFR and TFR FOR REST OF ENGLAND AND WALES OVER TIME (using data commissioned from ONS)
@@ -128,7 +127,6 @@ EandW_SMA_allYears <- merged_EandW_births_pop_allYears %>%
 
 ```
 
-
 ```{r setup3, include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
 
 ## ASFR and TFR FOR LONDON OVER TIME (using data commissioned from ONS)
@@ -198,7 +196,6 @@ London_TFR_allYears <- London_ASFR_allYears %>%
   data.frame()
 
 ```
-
 
 ```{r fig_births_and_pop_1, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
 
@@ -336,7 +333,6 @@ ggsave (filename = (paste0(chart_dir, "births_and_pop_line_ind.png")),
 
 ```
 
-
 ```{r fig_births_by_zone_abs, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
 
 
@@ -354,19 +350,21 @@ London_births_zone_grouped <- London_births %>%
   group_by(Year, Inner, Inner_factor) %>% 
   summarize(SUM_births = sum(value)) %>%
   data.frame()
-
-
+ 
 catcolour2 = c('#ee266d', '#6da7de')
 
 births_by_zone_abs_line <- London_births_zone_grouped  %>%
   mutate(Year = as.numeric(Year)) %>%
+  mutate(label = if_else(Year == max(Year), 
+                         as.character(Inner_factor), NA_character_)) %>%
   ggplot() +
  geom_line(aes(x = Year, y = SUM_births/1000, group = Inner_factor, colour = Inner_factor), size = 1) + 
        theme_gla() +
+     geom_label_repel(aes(x = Year, y = SUM_births/1000, group = Inner_factor, colour=Inner_factor, label = label),nudge_x = 1) +
   theme(axis.text.x=element_text(color = "black", 
                                  size=11, family = "Arial"),  #, angle=30, vjust=.8, hjust=0.8
         axis.text.y=element_text(color = "black", size=11, family = "Arial")) +
-    scale_x_continuous (limits = c (1990, 2021), breaks = c (1990, 1995, 2000, 2005, 2010, 2015, 2020)) + 
+      scale_x_continuous(limits = c (1993, 2022), breaks = c(1993, 1996, 1999, 2002, 2005, 2008, 2011, 2014, 2017, 2021)) +    
       theme(legend.title=element_text(size=14, family = "Arial"),
         legend.text=element_text(size=11, family = "Arial"),
         axis.text.x=element_text(color = "black", 
@@ -390,7 +388,6 @@ ggsave (filename = (paste0(chart_dir, "births_by_zone_abs_line.png")),
 
 
 ```
-
 
 ```{r fig_births_by_zone_ind, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
 
@@ -448,7 +445,6 @@ ggsave (filename = (paste0(chart_dir, "births_by_zone_ind_line.png")),
 
 
 ```
-
 
 ```{r setup4, include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
 
@@ -510,7 +506,6 @@ London_TFR_allYears_zone <- London_ASFR_allYears_zone %>%
   data.frame()
 
 ```
-
 
 ```{r setup5B, include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
 
@@ -575,7 +570,6 @@ total_modelled_births2 <- total_modelled_births %>%
   
 ```
 
-
 ```{r fig_modelled_births_zone, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
 
 catcolour2 = c('#ee266d', '#6da7de')
@@ -639,7 +633,6 @@ modelled_births_line_int
 
 
 ```
-
 
 ```{r fig_modelled_births_London, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
 
@@ -707,8 +700,6 @@ ggsave (filename = (paste0(chart_dir, "modelled_births_London_line.png")),
 
 
 ```
-
-
 
 ```{r setup6, include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
 
