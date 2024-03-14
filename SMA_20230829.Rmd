@@ -109,7 +109,7 @@ merged_EandW_births_pop_allYears = left_join(EandW_births_grouped, EandW_female_
                                   by=c("Year" = "Year", "age_mother" = "Age")) %>%
   data.frame()
 
-# Calculate SMA using new method at end of August
+# Calculate SMA using new method at end of August 2023
 EandW_SMA_allYears <- merged_EandW_births_pop_allYears %>%
  mutate(Age_mother = as.numeric(age_mother)) %>%
   mutate(EandW_ASFR = SUM_births/SUM_pop) %>%  # calculate fertility rate for each SYA
@@ -125,6 +125,28 @@ EandW_SMA_allYears <- merged_EandW_births_pop_allYears %>%
   data.frame()
  
 # For 2021 in England (excluding London) and Wales, SMA is 30.6 and TFR is 1.56 (or 1.58??)
+
+# Testing whether SMA calculated using new method gets same result (Feb '24) YES it does
+EandW_SMA_allYears_Feb <- merged_EandW_births_pop_allYears %>%
+  mutate(Age_mother = as.numeric(age_mother)) %>%
+  mutate(Feb_Age_mother = Age_mother+0.5) %>%
+  mutate(EandW_ASFR = SUM_births/SUM_pop) %>%  # calculate fertility rate for each SYA
+  mutate(EandW_ASFR_new = case_when(age_mother == 17 ~ EandW_ASFR*5, 
+                             age_mother == 42 ~ EandW_ASFR*5,
+                             TRUE ~ EandW_ASFR)) %>%   # Note - TRUE is equivalent to an “else” statement
+  mutate(EandW_AgeXASFR_new = EandW_ASFR_new * Age_mother) %>%     # Previous calc
+  mutate(EandW_AgeXASFR_Feb = EandW_ASFR_new * Feb_Age_mother) %>% # New calc in Feb
+  group_by(Year) %>%
+  summarize(SUM_EandW_ASFR_new = sum(EandW_ASFR_new),    
+            SUM_EandW_AgeXASFR_new = sum(EandW_AgeXASFR_new),  # This is previous calc
+            SUM_EandW_AgeXASFR_feb = sum(EandW_AgeXASFR_Feb)) %>% # This is new calc
+  mutate(EandW_TFR = SUM_EandW_ASFR_new) %>% # previous calc
+  mutate(EandW_SMA = (SUM_EandW_AgeXASFR_new / EandW_TFR) +0.5) %>%  # previous calc
+  mutate(EandW_SMA_Feb = (SUM_EandW_AgeXASFR_feb / EandW_TFR)) %>%
+  data.frame()
+
+# Adding 0.5 to all ages before calculation has same effect as adding 0.5 to final result.
+
 
 #-------------------------------------------------------------------------------
 

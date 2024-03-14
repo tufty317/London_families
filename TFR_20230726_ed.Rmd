@@ -283,9 +283,10 @@ ASFR_3selected_lines_SYA <- London_ASFR_3selected_years %>%
   geom_label_repel(aes(x = age_numeric, y = London_ASFR_perK, label = label), nudge_x = 2) +
   theme_gla() +
  # theme(legend.position = "right") +
-  geom_line(size=1) + 
+  geom_line(size=2) + 
   scale_colour_manual(values = catgreen3, guide="none") + 
   scale_y_continuous(limits = c(0, 120)) +
+    scale_x_continuous(breaks = c(20, 25, 30, 35, 40)) +  
 #  ylim(0, 125) +
   labs(title= "Age specific fertility rates, London, 2000 - 2020", 
        caption = paste0("Source: ONS, Chart: GLA demography"))
@@ -419,6 +420,10 @@ ggplotly(ASFR_London_line_group, tooltip = "text") %>%
 
 ```{r fig_London_TFR_5, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
 
+
+colour_palette = c("#ee266d", "#eb861e", "#6da7de", "#5ea15d","#943fa6","#63c5b5", "#9e0059","#ff38ba","#dee000")
+
+
 # # Plotting London ASFR by age-group, over time, with agegroup labels at the end of each line
 
 ASFR_London_calc_group_ed <- ASFR_London_calc_group %>%
@@ -437,7 +442,7 @@ ASFR_London_line_group <- ASFR_London_calc_group_ed %>%
   geom_line(aes(size=highlight_flag)) +  #, alpha=highlight_flag
   scale_size_manual( values = c(0.2, 2)) +
 #  scale_alpha_manual( values = c(0.8, 1)) +
-  scale_color_discrete(guide = FALSE) +
+  scale_color_manual(values = colour_palette, guide="none") + 
   theme(legend.position =" none") +
  # gghighlight(highlight_flag=="TRUE",
    #         unhighlighted_params = list(color = NULL, alpha = 0.3)) + #linewidth = 1

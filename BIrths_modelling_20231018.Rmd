@@ -221,7 +221,7 @@ births_and_pop_line <- total_London_births_pop %>%
     scale_linetype_manual(name='London Zone:', values=c('Inner London'="solid", 'Outer London'="dashed")) +
     scale_x_continuous (limits = c (1990, 2021), breaks = c (1990, 1995, 2000, 2005, 2010, 2015, 2020)) + 
     scale_color_manual(name='', values=c('Births (thousands)'= '#943fab', 
-                                               'Population of potential mothers (tens of thousands)'='#5ea15d')) +
+                                               'Population of potential mothers (tens of thousands)'='#63c5b5')) +
   
      theme(legend.title=element_text(size=14, family = "Arial"),
         legend.text=element_text(size=11, family = "Arial"),
@@ -281,13 +281,13 @@ total_London_pop_ind <- total_London_births_pop %>%
 births_and_pop_line_ind <- 
   ggplot() +
   geom_line(data = total_London_births_ind, aes(x = Year, y = indexed_births, group = 1, colour = '#943fab' 
-             ), size = 1) + 
+             ), size = 2) + 
     geom_label_repel(data = total_London_births_ind, aes(x = Year, y = indexed_births, label = label), 
                       nudge_x = -0.5, nudge_y = -1, color = '#943fab')+
-    geom_line(data = total_London_pop_ind, aes(x = Year, y = indexed_pop, group = 1,  color = '#5ea15d'
-      ), size = 1) + 
+    geom_line(data = total_London_pop_ind, aes(x = Year, y = indexed_pop, group = 1,  color = '#63c5b5'
+      ), size = 2) + 
      geom_label_repel(data = total_London_pop_ind, aes(x = Year, y = indexed_pop, label = label), 
-                      nudge_x = -0.5, nudge_y = -1, color = '#5ea15d')+
+                      nudge_x = -0.5, nudge_y = -1, color = '#63c5b5')+
     theme_gla() +
   theme(axis.text.x=element_text(color = "black", 
                                  size=11, family = "Arial"),  #, angle=30, vjust=.8, hjust=0.8
@@ -296,7 +296,7 @@ births_and_pop_line_ind <-
     scale_x_continuous(limits = c (1993, 2022), breaks = c(1993, 1996, 1999, 2002, 2005, 2008, 2011, 2014, 2017, 2021)) +     
   scale_y_continuous(labels = label_number(suffix = "%")) +
     geom_hline(yintercept=100)+
-    scale_color_manual(values=c('#5ea15d', '#943fab'), guide="none") +
+    scale_color_manual(values=c('#63c5b5', '#943fab'), guide="none") +
      theme(legend.title=element_text(size=14, family = "Arial"),
        legend.text=element_text(size=11, family = "Arial"),
         axis.text.x=element_text(color = "black", 
