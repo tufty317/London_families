@@ -140,6 +140,16 @@ London_births <- readRDS(paste0(data_dir,"births_calendar_year_age_mother_lad.rd
   filter(grepl('E09', gss_code)) %>%
   data.frame
 
+# checking total births on 19th March 2024
+
+# London_births_grouped <- London_births %>%
+#   filter(age_mother =="total") %>%
+#   mutate(Year = as.character(year)) %>%
+#   group_by(Year) %>% 
+#   summarize(SUM_births = sum(value)) %>%
+#   data.frame()
+
+
 London_births_grouped <- London_births %>%
   filter(age_mother !="total") %>%
   mutate(age_mother = recode(age_mother, 'Under 20'='17', '40 and over'='42')) %>% 
@@ -168,6 +178,14 @@ London_female_pop_all_recode <- London_female_pop %>%
   group_by(Year, Age) %>% 
   summarize(SUM_pop = sum(value)) %>%
   data.frame()
+
+# checking total population on 19th March 2024
+# 
+# London_pop_grouped <- London_female_pop %>%
+#   mutate(Year = as.character(year)) %>%
+#   group_by(Year) %>% 
+#   summarize(SUM_pop = sum(value)) %>%
+#   data.frame()
 
 # Merge population and births data 
 merged_London_births_pop_allYears = left_join(London_births_grouped, London_female_pop_all_recode, 
@@ -201,9 +219,9 @@ boroughcodes <- read.csv(paste0(data_dir,"InnerLondon.csv")) %>%
 
 # Use births data from above for London from 1993 to 2021 but group using  as well this time
 
-#London_births <- readRDS("C:/Families/Data/Births_by_SYA_1993-2021/births_calendar_year_age_mot#her_lad.rds") %>%  
-#  filter(grepl('E09', gss_code)) %>%
-#  data.frame
+London_births <- readRDS("C:/Families/Data/Births_by_SYA_1993-2021/births_calendar_year_age_mot#her_lad.rds") %>%
+ filter(grepl('E09', gss_code)) %>%
+ data.frame
 
 London_births_zone_grouped <- London_births %>%
   filter(age_mother !="total") %>%

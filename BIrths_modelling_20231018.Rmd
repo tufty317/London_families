@@ -333,6 +333,69 @@ ggsave (filename = (paste0(chart_dir, "births_and_pop_line_ind.png")),
 
 ```
 
+
+
+```{r fig_births_and_pop_2A, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+
+# CHART FOR REPORT
+  
+births_and_pop_line_ind_rep <- 
+  ggplot() +
+  geom_line(data = total_London_births_ind, aes(x = Year, y = indexed_births, group = 1, colour = '#943fab' 
+             ), size = 2) + 
+    geom_label_repel(data = total_London_births_ind, aes(x = Year, y = indexed_births, label = label), 
+                      nudge_x = -0.5, nudge_y = -1, color = '#943fab')+
+    geom_line(data = total_London_pop_ind, aes(x = Year, y = indexed_pop, group = 1,  color = '#63c5b5'
+      ), size = 2) + 
+     geom_label_repel(data = total_London_pop_ind, aes(x = Year, y = indexed_pop, label = label), 
+                      nudge_x = -0.5, nudge_y = -1, color = '#63c5b5')+
+    theme_gla() +
+  theme(axis.text.x=element_text(color = "black", 
+                                 size=11, family = "Arial"),  #, angle=30, vjust=.8, hjust=0.8
+        axis.text.y=element_text(color = "black", size=11, family = "Arial")) +
+    scale_linetype_manual(name='London Zone:', values=c('Inner London'="solid", 'Outer London'="dashed")) +
+    scale_x_continuous(limits = c (1993, 2022), breaks = c(1993, 1996, 1999, 2002, 2005, 2008, 2011, 2014, 2017, 2021)) +     
+  scale_y_continuous(labels = label_number(suffix = "%")) +
+    geom_hline(yintercept=100)+
+    scale_color_manual(values=c('#63c5b5', '#943fab'), guide="none") +
+     theme(legend.title=element_text(size=14, family = "Arial"),
+       legend.text=element_text(size=11, family = "Arial"),
+        axis.text.x=element_text(color = "black", 
+                                 size=11, family = "Arial"),  #, angle=30, vjust=.8, hjust=0.8
+        axis.text.y=element_text(color = "black", size=11, family = "Arial"))
+#+
+#  labs(title= "Births and population, 1993 - 2021, indexed to 1993", 
+#     caption = paste0("Source: ONS, Chart: GLA demography"))
+births_and_pop_line_ind_rep
+
+ggsave (filename = ("C:/Families/Charts_for_Daryl/births_and_pop_line_ind.svg"),
+         plot = births_and_pop_line_ind_rep,
+         device = "svg",
+         dpi=600,
+         width = 9,
+         height = 5.56,
+         units = "in")
+
+# modelled_births_line_int <- ggplotly(modelled_births_line, tooltip = "text") %>%
+#   style(hoverlabel = list(bgcolor = "white")) %>%
+#   layout(title= list(x = 0.05,
+#                      text = "<b>Modelled births (thousands)<b>",
+#                      font=list(size = 15, family = "Arial", color = "black", fontface = "bold")),
+#           legend=list(title=list(text='', font = list(size = 15, family = "Arial", color = "black", fontface = "bold"))),
+#           xaxis = list(title = list(text ='Year',
+#                                    font = list(size = 15, family = "Arial", color = "black",
+#                                                fontface = "bold"))),
+#           yaxis = list(title = list(text ='Births',
+#                                    font = list(size = 15, family = "Arial", color = "black",
+#                                                fontface = "bold")))
+#                  )
+# modelled_births_line_int
+
+
+
+```
+
+
 ```{r fig_births_by_zone_abs, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
 
 
