@@ -586,6 +586,45 @@ ggsave (filename = (paste0(chart_dir, "SMA_London_zone_EandW_lines.png")),
 
 ```
 
+```{r fig_London_EandW_SMA_B, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+
+
+SMA_London_zone_EandW_lines_rep <-
+   ggplot() +
+  theme_gla() +
+  geom_line(data = SMA_Inner_London, aes(x = year_numeric, y = SMA,  group = 1, color = '#d82222' ), size = 2) +
+   geom_label_repel(data = SMA_Inner_London, aes(x = year_numeric, y = SMA, label = label), nudge_x = 0, nudge_y = 0.4, color = '#d82222') +
+    geom_line(data = SMA_Outer_London, aes(x = year_numeric, y = SMA,  group = 1, color = '#6da7de'), size = 2) +
+     geom_label_repel(data = SMA_Outer_London, aes(x = year_numeric, y = SMA, label = label), nudge_x = 0, nudge_y = 0.4, color = '#6da7de')+
+   geom_line(data = SMA_EandW, aes(x = year_numeric, y = EandW_SMA, group = 1, color = "#5ea15d"), size = 2) +
+     geom_label_repel(data = SMA_EandW, aes(x = year_numeric, y = EandW_SMA, label = label), nudge_x = -1.0, nudge_y = -0.8, color = "#5ea15d")+
+     ylim(25, NA) +
+      scale_x_continuous(limits = c (1992, 2023), breaks = c(1993, 1996, 1999, 2002, 2005, 2008, 2011, 2014, 2017, 2021)) +
+      scale_y_continuous(limits = c (27.5, NA)) +
+#  scale_x_discrete(name ="Year", breaks=c("1991", "1996", "2001","2006","2011", "2016", "2021")) +
+   scale_color_manual(name="", values=c( "#5ea15d", '#6da7de','#d82222'), guide="none") +
+  theme(legend.position = "right") +
+  theme(legend.title=element_text(size=14, family = "Arial"),
+        legend.text=element_text(size=11, family = "Arial"),
+        axis.text.x=element_text(color = "black", 
+                                 size=11, family = "Arial"),  #, angle=30, vjust=.8, hjust=0.8
+        axis.text.y=element_text(color = "black", size=11, family = "Arial")) +      theme(plot.title = element_text(size = 16, hjust = 0.5)) 
+# +
+#  labs(title= "Standardised Mean Age of mothers, London and Rest of England & Wales, 1993 - 2021", 
+#     caption = paste0("Source: ONS, Chart: GLA demography"))
+SMA_London_zone_EandW_lines_rep
+
+
+ggsave (filename = "C:/Families/Charts_for_Daryl/21_H_SMA_London_zone_EandW_lines.svg",
+         plot = SMA_London_zone_EandW_lines_rep,
+         device = "svg",
+         dpi=600,
+         width = 9,
+         height = 5.56,
+         units = "in")
+
+```
+
 
 
 
@@ -900,7 +939,7 @@ SMA_absChange_geog <- London_SMA_allYears_boroughs_zone %>%
                       labels = c("1.0 -",
                                  "2.5 -",
                                  "3.5 -",
-                                 "4.5 -"))) %>%
+                                 "4.5 +"))) %>%
   data.frame()
 
 catgreen4 = c('#eeeeee', '#acc1aa', '#739272', '#4a6349')
@@ -983,6 +1022,57 @@ ggsave (filename = (paste0(chart_dir, "SMA_absChange_map2.png")),
 #          margin = list(l = 0,r = 0,  b =40,  t = 70,  pad = 4)) 
 # SMA_absChange_map2_int
 
+
+```
+
+```{r fig_London_SMA_10_B, fig.height = 5, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+
+
+SMA_absChange_map2_rep <- SMA_absChange_geog %>%
+  ggplot()+
+  geom_point(aes(x=BNG_E, y=BNG_N, 
+                 text = paste("Borough: ", gss_name,  
+                              "<br>SMA in 1993: ", 
+                              formatC(firstSMA, format="f", big.mark=",", digits=2),
+                              "<br>SMA in 2021: ", 
+                              formatC(lastSMA, format="f", big.mark=",", digits=2),
+                              "<br>Change in SMA between 1993 and 2021: ", 
+                              formatC(AbsChange_SMA, format="f", big.mark=",", digits=2))), 
+             alpha = 0)+   # alpha = 0 ensures that points are not actually plotted
+  geom_sf(aes(geometry=geometry, fill=SMA_AbsChangeCat),lwd = 0.2, colour = "black")+
+  #ggla_sf()+
+  #theme_gla()+
+  theme(plot.title = element_text(size = 16, hjust = 0.5)) +
+  theme(legend.position = "right")+
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank())+
+  theme(panel.background = element_blank())+
+  theme(plot.caption = element_text (hjust = 0))+
+  theme(plot.title = element_text(size = 16, hjust = 0.5)) +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_blank(), 
+        axis.text.y = element_blank(), 
+        axis.ticks.x = element_blank(), 
+        axis.ticks.y = element_blank())+
+  theme(legend.text = element_text(size=16)) +
+  theme(legend.title = element_text(size=16)) +
+  theme(legend.key.height= unit(1, 'cm'),
+        legend.key.width= unit(0.7, 'cm')) +
+  scale_fill_manual("Change in SMA", values = catgreen4) 
+# + 
+#  labs(title= "Change in SMA, 1993 - 2021, London", 
+#       caption = paste0("Source: Home Office, Chart: GLA demography")) 
+#  labs(fill = "Change in SMA")
+SMA_absChange_map2_rep
+
+ggsave (filename = "C:/Families/Charts_for_Daryl/21_I_SMA_absChange_map2.svg",
+         plot = SMA_absChange_map2_rep,
+         device = "svg",
+         dpi=600,
+         width = 9,
+         height = 5.56,
+         units = "in")
 
 ```
 

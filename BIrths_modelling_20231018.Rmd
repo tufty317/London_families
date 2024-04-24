@@ -306,7 +306,7 @@ births_and_pop_line_ind <-
      caption = paste0("Source: ONS, Chart: GLA demography"))
 births_and_pop_line_ind
 
-ggsave (filename = (paste0(chart_dir, "births_and_pop_line_ind.png")),
+ggsave (filename = (paste0(chart_dir, "2_1A_births_and_pop_line_ind.png")),
          plot = births_and_pop_line_ind,
          device = "png",
          dpi=600,
@@ -328,8 +328,6 @@ ggsave (filename = (paste0(chart_dir, "births_and_pop_line_ind.png")),
 #                                                fontface = "bold")))
 #                  )
 # modelled_births_line_int
-
-
 
 ```
 
@@ -368,7 +366,7 @@ births_and_pop_line_ind_rep <-
 #     caption = paste0("Source: ONS, Chart: GLA demography"))
 births_and_pop_line_ind_rep
 
-ggsave (filename = ("C:/Families/Charts_for_Daryl/births_and_pop_line_ind.svg"),
+ggsave (filename = ("C:/Families/Charts_for_Daryl/21_B_births_and_pop_line_ind.svg"),
          plot = births_and_pop_line_ind_rep,
          device = "svg",
          dpi=600,

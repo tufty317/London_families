@@ -310,6 +310,35 @@ ggplotly(ASFR_3selected_lines_SYA, tooltip = "text") %>%
 
 ```
 
+```{r fig_London_TFR_3C_B, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+
+ASFR_3selected_lines_SYA_rep <- London_ASFR_3selected_years %>%
+  ggplot(aes(x = age_numeric, y = London_ASFR_perK, group = Year, color = Year, text = paste("Year  :", Year,
+                                                           "<br>Age : ", age_numeric,
+                                                          "<br>ASFR: ", round(London_ASFR_perK, digits = 3))
+             ), size = 2) +
+  geom_label_repel(aes(x = age_numeric, y = London_ASFR_perK, label = label), nudge_x = 2) +
+  theme_gla() +
+ # theme(legend.position = "right") +
+  geom_line(size=2) + 
+  scale_colour_manual(values = catgreen3, guide="none") + 
+  scale_y_continuous(limits = c(0, 120)) +
+    scale_x_continuous(breaks = c(20, 25, 30, 35, 40)) 
+#+  
+#  ylim(0, 125) +
+#  labs(title= "Age specific fertility rates, London, 2000 - 2020", 
+#       caption = paste0("Source: ONS, Chart: GLA demography"))
+ASFR_3selected_lines_SYA_rep
+
+ggsave (filename = "C:/Families/Charts_for_Daryl/21_F_ASFR_London_SYA_3selected_lines.svg",
+         plot = ASFR_3selected_lines_SYA_rep,
+         device = "svg",
+         dpi=600,
+         width = 9,
+         height = 5.56,
+         units = "in")
+
+```
 
 ```{r setup3, include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
 
@@ -418,6 +447,33 @@ ggplotly(ASFR_London_line_group, tooltip = "text") %>%
 
 ```
 
+```{r fig_London_TFR_4_B, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+
+ASFR_London_line_group_rep <- ASFR_London_calc_group %>%
+  ggplot(aes(x = year, y = ASFR, group = age_Cat, color = age_Cat, text = paste("Year: ", year,
+                         "<br>Age group: ", age_Cat,
+                         "<br>ASFR: ", round(ASFR, digits = 3))
+)) +
+  theme_gla() +
+  theme(legend.position = "right") +
+  geom_line() +
+  ylim(0, 115) 
+#+
+#  labs(title= "Age specific fertility rates in London by age-category, 1993 - 2021", 
+#       caption = paste0("Source: ONS, Chart: GLA demography"))
+
+
+ggsave (filename = "C:/Families/Charts_for_Daryl/21_G_ASFR_London_ageGroup_line.svg",
+         plot = ASFR_London_line_group_rep,
+         device = "svg",
+         dpi=600,
+         width = 9,
+         height = 5.56,
+         units = "in")
+
+```
+
+
 ```{r fig_London_TFR_5, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
 
 
@@ -468,6 +524,41 @@ ggsave (filename = (paste0(chart_dir, "ASFR_London_ageGroup_line.png")),
 #          font=list(size = 15, family = "Arial")))
 
 ```
+```{r fig_London_TFR_5_B, fig.height = 5.56, fig.width = 9,  echo=FALSE, warning=FALSE, message=FALSE}
+
+ASFR_London_line_group_rep <- ASFR_London_calc_group_ed %>%
+  ggplot(aes(x = year, y = ASFR, group = age_Cat, color = age_Cat, text = paste("Year: ", year,
+                         "<br>Age group: ", age_Cat,
+                         "<br>ASFR: ", round(ASFR, digits = 3))
+)) +
+  theme_gla() +
+#  theme(legend.position = "right") +
+  geom_line(aes(size=highlight_flag)) +  #, alpha=highlight_flag
+  scale_size_manual( values = c(0.2, 2)) +
+#  scale_alpha_manual( values = c(0.8, 1)) +
+  scale_color_manual(values = colour_palette, guide="none") + 
+  theme(legend.position =" none") +
+ # gghighlight(highlight_flag=="TRUE",
+   #         unhighlighted_params = list(color = NULL, alpha = 0.3)) + #linewidth = 1
+   ylim(0, 112) +
+    scale_x_continuous(limits = c (1992, 2025), breaks = c(1993, 1996, 1999, 2002, 2005, 2008, 2011, 2014, 2017, 2021)) +  
+  geom_label_repel(aes(label = label), nudge_x = 1) 
+#  +
+#  labs(title= "Age specific fertility rates in London by age-category, 1993 - 2021", 
+#       caption = paste0("Source: ONS, Chart: GLA demography"))
+ASFR_London_line_group_rep 
+
+
+ggsave (filename = "C:/Families/Charts_for_Daryl/21_G_ASFR_London_ageGroup_line.svg",
+         plot = ASFR_London_line_group_rep,
+         device = "svg",
+         dpi=600,
+         width = 9,
+         height = 5.56,
+         units = "in")
+
+```
+
 
 
 ```{r setup4, include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
