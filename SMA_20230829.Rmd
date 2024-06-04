@@ -30,12 +30,11 @@ library(ggplot2)
 library(gglaplot)
 library(ggrepel)
 
+data_dir <- 'C:/Families/Data_for_github/'
+chart_dir <- 'C:/Families/Charts_for_github/'
 
-#devtools::load_all("C:/demogtools/")
-
-data_dir <- 'DATA/'
-chart_dir <- 'C:/Families/Charts/'
-#colour_palette <- gla_colour_palette()[c(3,6,2,4,5,7,1)]
+# Disable scientific notation
+options(scipen=999)
 
 
 ```
@@ -363,12 +362,12 @@ SMA_London_geog <- London_SMA_allYears_boroughs_zone %>%
                              labels = c("30.0 -",
                                         "31.4 -",
                                         "32.1 -",
-                                        "34.0 -"))) %>%
+                                        "34.0+"))) %>%
   data.frame()
 
 catgreen4 = c('#eeeeee', '#acc1aa', '#739272', '#4a6349')
 
-SMA_London_map2 <- SMA_London_geog %>%
+SMA_London_map2_rep <- SMA_London_geog %>%
   ggplot()+
   geom_point(aes(x=BNG_E, y=BNG_N, 
                  text = paste("Borough: ", gss_name,  
@@ -395,15 +394,23 @@ SMA_London_map2 <- SMA_London_geog %>%
   theme(legend.title = element_text(size=16)) +
   theme(legend.key.height= unit(1, 'cm'),
         legend.key.width= unit(0.7, 'cm')) +
-  scale_fill_manual("SMA in 2021", values = catgreen4) + 
-  labs(title= "Standardised mean age of mothers in London, 2021", 
-       caption = paste0("Source: Home Office, Chart: GLA demography")) +
+  scale_fill_manual("SMA in 2021", values = catgreen4)  + 
+  #labs(title= "Standardised mean age of mothers in London, 2021", 
+  #     caption = paste0("Source: Home Office, Chart: GLA demography")) +
   labs(fill = "")
-SMA_London_map2
+SMA_London_map2_rep
 
 ggsave (filename = (paste0(chart_dir, "SMA_London_map2.png")),
-         plot = SMA_London_map2,
+         plot = SMA_London_map2_rep,
          device = "png",
+         dpi=600,
+         width = 9,
+         height = 5.56,
+         units = "in")
+
+ggsave (filename = "C:/Families/Charts_for_Daryl/21_I2_SMA_London_map2.svg",
+         plot = SMA_London_map2_rep,
+         device = "svg",
          dpi=600,
          width = 9,
          height = 5.56,
@@ -939,7 +946,7 @@ SMA_absChange_geog <- London_SMA_allYears_boroughs_zone %>%
                       labels = c("1.0 -",
                                  "2.5 -",
                                  "3.5 -",
-                                 "4.5 +"))) %>%
+                                 "4.5+"))) %>%
   data.frame()
 
 catgreen4 = c('#eeeeee', '#acc1aa', '#739272', '#4a6349')
@@ -1059,14 +1066,14 @@ SMA_absChange_map2_rep <- SMA_absChange_geog %>%
   theme(legend.title = element_text(size=16)) +
   theme(legend.key.height= unit(1, 'cm'),
         legend.key.width= unit(0.7, 'cm')) +
-  scale_fill_manual("Change in SMA", values = catgreen4) 
+  scale_fill_manual("Change\nin SMA", values = catgreen4) 
 # + 
 #  labs(title= "Change in SMA, 1993 - 2021, London", 
 #       caption = paste0("Source: Home Office, Chart: GLA demography")) 
 #  labs(fill = "Change in SMA")
 SMA_absChange_map2_rep
 
-ggsave (filename = "C:/Families/Charts_for_Daryl/21_I_SMA_absChange_map2.svg",
+ggsave (filename = "C:/Families/Charts_for_Daryl/21_I1_SMA_absChange_map2.svg",
          plot = SMA_absChange_map2_rep,
          device = "svg",
          dpi=600,
